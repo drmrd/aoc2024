@@ -14,14 +14,13 @@ def is_safe(report: list[int]) -> bool:
 
 
 def is_strictly_safe(report: list[int]) -> bool:
-    def sign(n: int):
-        return math.copysign(1, n)
+    def sign(x: float) -> float:
+        return math.copysign(1, x)
 
-    first_sign = sign(report[1] - report[0])
+    differences = {
+        second - first for first, second in itertools.pairwise(report)
+    }
+    signs = {sign(difference) for difference in differences}
+    absolute_differences = {abs(difference) for difference in differences}
 
-    return all(
-        (sign(second - first) == first_sign)
-        and
-        (1 <= abs(second - first) <= 3)
-        for first, second in itertools.pairwise(report)
-    )
+    return len(signs) == 1 and absolute_differences <= {1, 2, 3}
