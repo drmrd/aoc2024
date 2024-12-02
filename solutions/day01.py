@@ -1,11 +1,11 @@
 from aoc2024 import location_ids, utilities
 
 
-def solution_to_part_one():
+def solve_part_one():
     return location_ids.compare_lists(*_location_id_lists())
 
 
-def solution_to_part_two():
+def solve_part_two():
     return location_ids.similarity_score(*_location_id_lists())
 
 
@@ -20,5 +20,5 @@ def _location_id_lists() -> tuple[list[int], list[int]]:
 
 
 if __name__ == '__main__':
-    print('Solution to Part 1:', solution_to_part_one())
-    print('Solution to Part 2:', solution_to_part_two())
+    print('Solution to Part 1:', solve_part_one())
+    print('Solution to Part 2:', solve_part_two())
