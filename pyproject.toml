@@ -12,6 +12,7 @@ python = "^3.13"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
+mypy = "^1.13.0"
 
 [build-system]
 requires = ["poetry-core"]

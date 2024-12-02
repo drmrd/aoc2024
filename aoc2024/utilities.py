@@ -2,7 +2,7 @@ from collections.abc import Generator
 from pathlib import Path
 
 
-PUZZLE_INPUTS_DIRECTORY = Path.cwd() / 'puzzle_inputs'
+PUZZLE_INPUTS_DIRECTORY: Path = Path.cwd() / 'puzzle_inputs'
 
 
 def input_lines(day: int) -> Generator[str]:
