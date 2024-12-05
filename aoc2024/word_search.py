@@ -4,7 +4,7 @@ from collections.abc import Iterable, Iterator
 
 
 def count(puzzle: str, words: Iterable[str]) -> int:
-    return _count_in_rows(puzzle, words)
+    return _count_in_rows(puzzle, words) + _count_in_columns(puzzle, words)
 
 
 def _count_in_rows(puzzle: str, words: Iterable[str]) -> int:
@@ -15,6 +15,17 @@ def _count_in_rows(puzzle: str, words: Iterable[str]) -> int:
         for word in word_group
         for row in itertools.chain(rows, map(reversed, rows))
         for candidate in _sliding_word(row, word_length)
+    )
+
+
+def _count_in_columns(puzzle: str, words: Iterable[str]) -> int:
+    columns = list(zip(*puzzle.split('\n')))
+    return sum(
+        word == candidate
+        for word_length, word_group in itertools.groupby(sorted(words, key=len), key=len)
+        for word in word_group
+        for column in itertools.chain(columns, map(reversed, columns))
+        for candidate in _sliding_word(column, word_length)
     )
 
 
