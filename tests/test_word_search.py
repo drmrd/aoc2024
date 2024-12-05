@@ -49,3 +49,14 @@ def test_count_finds_reversed_words_in_columns():
         'SSOO'
     ])
     assert word_search.count(puzzle, words=['XMAS']) == 5
+
+
+def test_count_finds_words_on_diagonals():
+    puzzle = '\n'.join([
+        'OOXOXOOOOO',
+        'OOOMSMSOOO',
+        'OOAOAAAAOO',
+        'OSOOMSMSMO',
+        'OOOXOOOXOX'
+    ])
+    assert word_search.count(puzzle, words=['XMAS']) == 6
