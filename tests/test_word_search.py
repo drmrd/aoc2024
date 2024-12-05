@@ -8,3 +8,12 @@ def test_count_finds_words_in_rows():
         'OOOOOOXMAS'
     ])
     assert word_search.count(puzzle, words=['XMAS']) == 4
+
+
+def test_count_finds_reversed_horizontal_words():
+    puzzle = '\n'.join([
+        'OOOSAMXOOO',
+        'SAMXSAMXOO',
+        'OOOOOOSAMX'
+    ])
+    assert word_search.count(puzzle, words=['XMAS']) == 4

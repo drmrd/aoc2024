@@ -8,12 +8,13 @@ def count(puzzle: str, words: Iterable[str]) -> int:
 
 
 def _count_in_rows(puzzle: str, words: Iterable[str]) -> int:
+    rows = puzzle.split('\n')
     return sum(
         word == candidate
         for word_length, word_group in itertools.groupby(sorted(words, key=len), key=len)
         for word in word_group
-        for line in puzzle.split('\n')
-        for candidate in _sliding_word(line, word_length)
+        for row in itertools.chain(rows, map(reversed, rows))
+        for candidate in _sliding_word(row, word_length)
     )
 
 
