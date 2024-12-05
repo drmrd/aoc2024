@@ -1,6 +1,22 @@
 from aoc2024 import word_search
 
 
+def test_cross_count_day04_example():
+    puzzle = '\n'.join([
+        'MMMSXXMASM',
+        'MSAMXMSMSA',
+        'AMXSXMAAMM',
+        'MSAMASMSMX',
+        'XMASAMXAMM',
+        'XXAMMXXAMA',
+        'SMSMSASXSS',
+        'SAXAMASAAA',
+        'MAMMMXMMMM',
+        'MXMXAXMASX'
+    ])
+    assert word_search.cross_count(puzzle) == 9
+
+
 def test_count_day04_example():
     puzzle = '\n'.join([
         'MMMSXXMASM',
