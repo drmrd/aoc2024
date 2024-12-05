@@ -3,6 +3,24 @@ import itertools
 from collections.abc import Iterable, Iterator
 
 
+def cross_count(puzzle: str) -> int:
+    def cross_indices(puzzle: str) -> Iterator[tuple[int, int]]:
+        puzzle_rows = puzzle.split('\n')
+        cross_patterns = {'MMASS', 'SMASM', 'SSAMM', 'MSAMS'}
+        for window_row_start_index in range(len(puzzle_rows) - 2):
+            for window_column_start_index in range(len(puzzle_rows[0]) - 2):
+                cross_candidate = ''.join([
+                    puzzle_rows[window_row_start_index][window_column_start_index],
+                    puzzle_rows[window_row_start_index][window_column_start_index + 2],
+                    puzzle_rows[window_row_start_index + 1][window_column_start_index + 1],
+                    puzzle_rows[window_row_start_index + 2][window_column_start_index],
+                    puzzle_rows[window_row_start_index + 2][window_column_start_index + 2]
+                ])
+                if cross_candidate in cross_patterns:
+                    yield window_row_start_index, window_column_start_index
+    return len(list(cross_indices(puzzle)))
+
+
 def count(puzzle: str, words: Iterable[str]) -> int:
     return (
         _count_in_rows(puzzle, words)
