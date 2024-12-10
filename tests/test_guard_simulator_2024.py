@@ -63,3 +63,25 @@ def test_can_add_guard_to_unguarded_lab(day6_example_lab_state):
     assert lab.is_guarded
     assert lab.guard_position == guard_position
     assert lab.guard_orientation == guard_orientation
+
+
+def test_can_add_and_remove_obstructions(day6_example_lab_state):
+    lab = GuardedLab(day6_example_lab_state)
+    new_blocked_position = (0, 0)
+
+    assert new_blocked_position not in lab.blocked
+
+    lab.block(new_blocked_position)
+
+    assert new_blocked_position in lab.blocked
+
+    lab.unblock(new_blocked_position)
+
+    assert new_blocked_position not in lab.blocked
+
+
+def test_blocking_guards_position_raises_an_error(day6_example_lab_state):
+    lab = GuardedLab(day6_example_lab_state)
+
+    with pytest.raises(ValueError, match='occupied'):
+        lab.block(lab.guard_position)

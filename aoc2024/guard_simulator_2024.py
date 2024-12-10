@@ -82,8 +82,16 @@ class GuardedLab:
         return {position for position, _ in self._visited_with_orientation}
 
     @property
+    def blocked(self) -> set[Position]:
+        return self._blocked
+
+    @property
     def is_guarded(self) -> bool:
         return self._is_guarded
+
+    @property
+    def guard_is_looping(self) -> bool:
+        return self._guard_has_looped
 
     @property
     def guard_position(self) -> Position:
@@ -119,6 +127,14 @@ class GuardedLab:
             (position, orientation): True
         }
         self._visited_count = 1
+
+    def block(self, position: Position):
+        if position == self.guard_position:
+            raise ValueError(f'Position {position} is occupied by the guard.')
+        self._blocked.add(position)
+
+    def unblock(self, position: Position):
+        self._blocked.remove(position)
 
     def _step_or_turn_right(self) -> None:
         if not self._is_guarded:
