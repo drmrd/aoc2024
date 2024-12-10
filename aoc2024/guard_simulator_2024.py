@@ -77,9 +77,40 @@ class GuardedLab:
     def visited_count(self) -> int:
         return self._visited_count
 
+    @property
+    def visited(self) -> set[Position]:
+        return {position for position, _ in self._visited_with_orientation}
+
+    @property
+    def is_guarded(self) -> bool:
+        return self._is_guarded
+
+    @property
+    def guard_position(self) -> Position:
+        try:
+            return self._guard_position
+        except AttributeError:
+            raise ValueError('This lab is unguarded!')
+
+    @property
+    def guard_orientation(self) -> Direction:
+        try:
+            return self._guard_orientation
+        except AttributeError:
+            raise ValueError('This lab is unguarded!')
+
+    def reset(self):
+        self._is_guarded = False
+        del self._guard_position
+        del self._guard_orientation
+        del self._guard_is_gone
+        del self._guard_has_looped
+        self._visited_with_orientation = {}
+        self._visited_count = 0
+
     def _step_or_turn_right(self) -> None:
         if not self._is_guarded:
-            raise ValueError('GuardedLab is unguarded!')
+            raise ValueError('This lab is unguarded!')
         y, x = self._guard_position
         dy, dx = self._guard_orientation.value
         y_next, x_next = y + dy, x + dx
