@@ -108,6 +108,18 @@ class GuardedLab:
         self._visited_with_orientation = {}
         self._visited_count = 0
 
+    def add_guard(self, position: Position, orientation: Direction):
+        if self._is_guarded:
+            raise ValueError('Lab can have only one guard at a time.')
+        self._is_guarded = True
+        self._guard_position = position
+        self._guard_orientation = orientation
+        self._guard_is_gone = self._guard_has_looped = False
+        self._visited_with_orientation = {
+            (position, orientation): True
+        }
+        self._visited_count = 1
+
     def _step_or_turn_right(self) -> None:
         if not self._is_guarded:
             raise ValueError('This lab is unguarded!')
