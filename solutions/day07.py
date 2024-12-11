@@ -1,5 +1,13 @@
 from aoc2024 import utilities
-from aoc2024.calibrators import is_calibrated
+from aoc2024.calibrators import (
+    is_calibrated,
+    potential_addition,
+    addition_partial_inverse,
+    potential_multiplication,
+    multiplication_partial_inverse,
+    potential_concatenation,
+    concatenation_partial_inverse
+)
 
 
 def solve_part_one():
@@ -13,7 +21,13 @@ def solve_part_one():
     return sum(
         test_value
         for test_value, operands in calibration_tests
-        if is_calibrated(test_value, operands, part2=False)
+        if is_calibrated(
+            test_value, operands,
+            predicate_partial_inverse_pairs=[
+                (potential_addition, addition_partial_inverse),
+                (potential_multiplication, multiplication_partial_inverse)
+            ]
+        )
     )
 
 
@@ -28,7 +42,14 @@ def solve_part_two():
     return sum(
         test_value
         for test_value, operands in calibration_tests
-        if is_calibrated(test_value, operands, part2=True)
+        if is_calibrated(
+            test_value, operands,
+            predicate_partial_inverse_pairs=[
+                (potential_addition, addition_partial_inverse),
+                (potential_multiplication, multiplication_partial_inverse),
+                (potential_concatenation, concatenation_partial_inverse)
+            ]
+        )
     )
 
 
