@@ -10,7 +10,7 @@ from aoc2024.vector import Vector
 def solve_part_one():
     puzzle_input = list(utilities.input_lines(day=8))
 
-    mind_controlled_by_frequency = ebc.imc_mind_control_locations(
+    mind_controlled_by_frequency = ebc.imc_mind_control_nearest_locations(
         antennae_by_frequency={
             frequency: list(set(
                 Vector(row, column)
@@ -31,7 +31,26 @@ def solve_part_one():
 
 
 def solve_part_two():
-    return 'TBD'
+    puzzle_input = list(utilities.input_lines(day=8))
+
+    mind_controlled_by_frequency = ebc.imc_mind_control_locations(
+        antennae_by_frequency={
+            frequency: list(set(
+                Vector(row, column)
+                for row in range(len(puzzle_input))
+                for column in range(len(puzzle_input[0]))
+                if puzzle_input[row][column] == frequency
+            ))
+            for frequency in set(''.join(puzzle_input)) - {'.'}
+        },
+        grid_shape=(len(puzzle_input), len(puzzle_input[0]))
+    )
+    mind_controlled_locations = set(
+        itertools.chain.from_iterable(
+            mind_controlled_by_frequency.values()
+        )
+    )
+    return len(mind_controlled_locations)
 
 
 if __name__ == '__main__':

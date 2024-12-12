@@ -53,4 +53,3 @@ def test_vector_arithmetic(components1, components2, scalar):
     assert -vector1 == negation
     assert scalar * vector1 == scalar_product
     assert vector1 * scalar == scalar_product
-
