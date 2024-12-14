@@ -11,7 +11,11 @@ def solve_part_one():
 
 
 def solve_part_two():
-    return 'TDB'
+    return (
+        DiskMap.from_dense_map(next(utilities.input_lines(day=9)))
+               .defrag()
+               .checksum
+    )
 
 
 if __name__ == '__main__':
