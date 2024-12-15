@@ -8,6 +8,8 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.13"
+tqdm = "^4.67.1"
+pygame = "^2.6.1"
 
 
 [tool.poetry.group.dev.dependencies]
