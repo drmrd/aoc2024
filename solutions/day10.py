@@ -109,8 +109,64 @@ def solve_part_one(visualize=False, fps=60):
     return trailhead_scores
 
 
-def solve_part_two():
-    return 'TBD'
+def solve_part_two(visualize=False, fps=60):
+    topographical_map = [
+        list(map(int, line))
+        for line in utilities.input_lines(day=10)
+    ]
+    map_shape = len(topographical_map), len(topographical_map[0])
+    trailheads = [
+        (row, column)
+        for row in range(map_shape[0])
+        for column in range(map_shape[1])
+        if topographical_map[row][column] == 0
+    ]
+
+    if visualize:
+        visualizer = trail_search_visualizer(topographical_map, fps=fps)
+        topographical_map_data = [
+            [
+                {
+                    'height': topographical_map[row][column],
+                    'color': VISUALIZER_COLORS['unvisited']['default']['color'],
+                    'bg_color': VIRIDIS_RGB_PALETTE[topographical_map[row][column]]
+                }
+                for column in range(map_shape[1])
+            ]
+            for row in range(map_shape[0])
+        ]
+    else:
+        visualizer = infinite_coroutine()
+        topographical_map_data = None
+    next(visualizer)
+
+    trailhead_ratings = 0
+    for trailhead in trailheads:
+        trailhead_rating = 0
+        visited = set()
+        to_visit = deque([trailhead])
+        while to_visit:
+            node = to_visit.pop()
+            node_height = topographical_map[node[0]][node[1]]
+            visited.add(node)
+            to_visit.extend((
+                neighbor
+                for neighbor in _neighbors_at_height(
+                    topographical_map, node, node_height + 1, map_shape
+                )
+            ))
+            update_visualizer_state(
+                topographical_map,
+                topographical_map_data,
+                node,
+                visited,
+                to_visit
+            )
+            visualizer.send(topographical_map_data)
+            if node_height == 9:
+                trailhead_rating += 1
+        trailhead_ratings += trailhead_rating
+    return trailhead_ratings
 
 
 def _neighbors_at_height(map, node, height, map_shape):
@@ -261,8 +317,8 @@ def infinite_coroutine(*args, **kwargs):
 
 
 if __name__ == '__main__':
-    print('Solution to Part 1:', solve_part_one(visualize=True))
-    print('Solution to Part 2:', solve_part_two())
+    print('Solution to Part 1:', solve_part_one())
+    print('Solution to Part 2:', solve_part_two(visualize=True))
 
     executions, repetitions = 100, 10
     print(
