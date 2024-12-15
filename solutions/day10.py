@@ -49,67 +49,16 @@ VISUALIZER_COLORS = {
 
 
 def solve_part_one(visualize=False, fps=60):
-    topographical_map = [
-        list(map(int, line))
-        for line in utilities.input_lines(day=10)
-    ]
-    map_shape = len(topographical_map), len(topographical_map[0])
-    trailheads = [
-        (row, column)
-        for row in range(map_shape[0])
-        for column in range(map_shape[1])
-        if topographical_map[row][column] == 0
-    ]
-
-    if visualize:
-        visualizer = trail_search_visualizer(topographical_map, fps=fps)
-        topographical_map_data = [
-            [
-                {
-                    'height': topographical_map[row][column],
-                    'color': VISUALIZER_COLORS['unvisited']['default']['color'],
-                    'bg_color': VIRIDIS_RGB_PALETTE[topographical_map[row][column]]
-                }
-                for column in range(map_shape[1])
-            ]
-            for row in range(map_shape[0])
-        ]
-    else:
-        visualizer = infinite_coroutine()
-        topographical_map_data = None
-    next(visualizer)
-
-    trailhead_scores = 0
-    for trailhead in trailheads:
-        visited = set()
-        to_visit = deque([trailhead])
-        while to_visit:
-            node = to_visit.pop()
-            node_height = topographical_map[node[0]][node[1]]
-            visited.add(node)
-            to_visit.extend((
-                neighbor
-                for neighbor in _neighbors_at_height(
-                    topographical_map, node, node_height + 1, map_shape
-                )
-                if neighbor not in visited
-            ))
-            update_visualizer_state(
-                topographical_map,
-                topographical_map_data,
-                node,
-                visited,
-                to_visit
-            )
-            visualizer.send(topographical_map_data)
-        trailhead_scores += len({
-            node for node in visited
-            if topographical_map[node[0]][node[1]] == 9
-        })
-    return trailhead_scores
+    return _count_trails(allow_revisiting=False, visualize=visualize, fps=fps)
 
 
 def solve_part_two(visualize=False, fps=60):
+    return _count_trails(allow_revisiting=True, visualize=visualize, fps=fps)
+
+
+def _count_trails(
+        allow_revisiting: bool, visualize: bool = False, fps: int = 60
+) -> int:
     topographical_map = [
         list(map(int, line))
         for line in utilities.input_lines(day=10)
@@ -140,9 +89,9 @@ def solve_part_two(visualize=False, fps=60):
         topographical_map_data = None
     next(visualizer)
 
-    trailhead_ratings = 0
+    cumulative_rating_or_score = 0
     for trailhead in trailheads:
-        trailhead_rating = 0
+        trailhead_rating_or_score = 0
         visited = set()
         to_visit = deque([trailhead])
         while to_visit:
@@ -154,6 +103,7 @@ def solve_part_two(visualize=False, fps=60):
                 for neighbor in _neighbors_at_height(
                     topographical_map, node, node_height + 1, map_shape
                 )
+                if allow_revisiting or neighbor not in visited
             ))
             update_visualizer_state(
                 topographical_map,
@@ -164,9 +114,9 @@ def solve_part_two(visualize=False, fps=60):
             )
             visualizer.send(topographical_map_data)
             if node_height == 9:
-                trailhead_rating += 1
-        trailhead_ratings += trailhead_rating
-    return trailhead_ratings
+                trailhead_rating_or_score += 1
+        cumulative_rating_or_score += trailhead_rating_or_score
+    return cumulative_rating_or_score
 
 
 def _neighbors_at_height(map, node, height, map_shape):
@@ -306,19 +256,21 @@ def trail_search_visualizer(topographical_map, fps=60):
     while True:
         topographical_map_data = yield
         draw_grid(screen, topographical_map_data, 15)
-        handle_pygame_events()
         pygame.display.update()
+        handle_pygame_events()
         clock.tick(fps)
 
 
 def infinite_coroutine(*args, **kwargs):
     while True:
-        value = yield
+        _ = yield
 
 
 if __name__ == '__main__':
+    # Set a visualize keyword to True to open a visualization in a separate
+    # window.
     print('Solution to Part 1:', solve_part_one())
-    print('Solution to Part 2:', solve_part_two(visualize=True))
+    print('Solution to Part 2:', solve_part_two())
 
     executions, repetitions = 100, 10
     print(
@@ -332,4 +284,10 @@ if __name__ == '__main__':
             for _ in range(repetitions)
         )
     )
-    print('Part 2:', 'TBD')
+    print(
+        'Part 2:',
+        min(
+            timeit.timeit(solve_part_two, number=executions) / executions
+            for _ in range(repetitions)
+        )
+    )
