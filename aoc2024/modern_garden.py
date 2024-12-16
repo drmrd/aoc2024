@@ -2,6 +2,10 @@ import itertools
 from collections import deque
 
 
+def area(region: frozenset[tuple[int, int]]) -> int:
+    return len(region)
+
+
 def garden_regions(garden: dict[tuple[int, int], str]) -> set[frozenset[tuple[int, int]]]:
     *_, final_indices = garden
     garden_shape = (final_indices[0] + 1, final_indices[1] + 1)
