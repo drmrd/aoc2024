@@ -41,6 +41,13 @@ def perimeter(region: frozenset[tuple[int, int]]) -> int:
     return sum(_plot_perimeter(plot, region) for plot in region)
 
 
+def fence_cost(garden: dict[tuple[int, int], str]) -> int:
+    return sum(
+        area(region) * perimeter(region)
+        for region in garden_regions(garden)
+    )
+
+
 def _plot_perimeter(plot: tuple[int, int], region: frozenset[tuple[int, int]]) -> int:
     return 4 - len(region & set(_neighbors(plot)))
 

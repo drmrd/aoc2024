@@ -1,6 +1,6 @@
 import itertools
 
-from aoc2024.modern_garden import area, garden_regions, perimeter
+from aoc2024.modern_garden import area, fence_cost, garden_regions, perimeter
 
 
 def test_garden_regions_day12_part1_example1():
@@ -47,3 +47,18 @@ def test_perimeter_day12_part1_example1():
     }
     for region, expected_perimeter in expected_perimeter_by_region.items():
         assert perimeter(region) == expected_perimeter
+
+
+def test_fence_cost_day12_part1_example1():
+    garden_plants = [
+        ['A', 'A', 'A', 'A'],
+        ['B', 'B', 'C', 'D'],
+        ['B', 'B', 'C', 'C'],
+        ['E', 'E', 'E', 'C']
+    ]
+    garden = {
+        (row, column): garden_plants[row][column]
+        for row, column in itertools.product(range(4), range(4))
+    }
+
+    assert fence_cost(garden) == 140
