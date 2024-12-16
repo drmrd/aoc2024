@@ -1,9 +1,6 @@
 import itertools
+import math
 from collections import deque
-
-
-def area(region: frozenset[tuple[int, int]]) -> int:
-    return len(region)
 
 
 def garden_regions(garden: dict[tuple[int, int], str]) -> set[frozenset[tuple[int, int]]]:
@@ -36,7 +33,19 @@ def garden_regions(garden: dict[tuple[int, int], str]) -> set[frozenset[tuple[in
     return {frozenset(region) for region in regions}
 
 
-def _neighbors(node, grid_shape, directions=('up', 'down', 'left', 'right')):
+def area(region: frozenset[tuple[int, int]]) -> int:
+    return len(region)
+
+
+def perimeter(region: frozenset[tuple[int, int]]) -> int:
+    return sum(_plot_perimeter(plot, region) for plot in region)
+
+
+def _plot_perimeter(plot: tuple[int, int], region: frozenset[tuple[int, int]]) -> int:
+    return 4 - len(region & set(_neighbors(plot)))
+
+
+def _neighbors(node, grid_shape=(math.inf, math.inf), directions=('up', 'down', 'left', 'right')):
     neighbor_offsets = {
         'up': (-1, 0), 'down': (1, 0), 'left': (0, -1), 'right': (0, 1)
     }

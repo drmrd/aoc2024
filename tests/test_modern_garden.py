@@ -1,6 +1,6 @@
 import itertools
 
-from aoc2024.modern_garden import area, garden_regions
+from aoc2024.modern_garden import area, garden_regions, perimeter
 
 
 def test_garden_regions_day12_part1_example1():
@@ -35,3 +35,15 @@ def test_area_day12_part1_example1():
     ]
     for region in regions:
         assert area(region) == len(region)
+
+
+def test_perimeter_day12_part1_example1():
+    expected_perimeter_by_region = {
+        frozenset({(0, 0), (0, 1), (0, 2), (0, 3)}): 10,
+        frozenset({(1, 0), (1, 1), (2, 0), (2, 1)}): 8,
+        frozenset({(1, 2), (2, 2), (2, 3), (3, 3)}): 10,
+        frozenset({(1, 3)}): 4,
+        frozenset({(3, 0), (3, 1), (3, 2)}): 8
+    }
+    for region, expected_perimeter in expected_perimeter_by_region.items():
+        assert perimeter(region) == expected_perimeter
