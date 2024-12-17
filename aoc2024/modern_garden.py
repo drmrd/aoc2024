@@ -1,49 +1,87 @@
+from __future__ import annotations
+
 import itertools
 import math
-from collections import deque
+from enum import Enum
+from functools import lru_cache
+
+from aoc2024.vector import Vector
+
+
+class Direction(Enum):
+    UP = -1j
+    DOWN = 1j
+    LEFT = -1
+    RIGHT = 1
+
+    @lru_cache(4)
+    def offsets(self) -> tuple[int, int]:
+        return int(self.value.imag), int(self.value.real)
+
+    @lru_cache(4)
+    def rotate_counterclockwise(self) -> Direction:
+        return Direction(self.value * -1j)
+
+    @lru_cache(4)
+    def rotate_clockwise(self) -> Direction:
+        return Direction(self.value * 1j)
 
 
 def garden_regions(garden: dict[tuple[int, int], str]) -> set[frozenset[tuple[int, int]]]:
     *_, final_indices = garden
     garden_shape = (final_indices[0] + 1, final_indices[1] + 1)
-    regions = deque()
-    region_id = {}
-    next_region_id = 0
+    region = {
+        point: {point}
+        for point in itertools.product(*map(range, garden_shape))
+    }
     for point in itertools.product(*map(range, garden_shape)):
         neighbors_in_region = [
             neighbor
-            for neighbor in _neighbors(point, garden_shape, ('left', 'up'))
+            for neighbor in _neighbors(point, garden_shape, ('up', 'left'))
             if garden[point] == garden[neighbor]
         ]
-        match neighbors_in_region:
-            case []:
-                regions.append({point})
-                region_id[point] = next_region_id
-                next_region_id += 1
-            case [neighbor]:
-                neighboring_region_id = region_id[neighbor]
-                regions[neighboring_region_id].add(point)
-                region_id[point] = neighboring_region_id
-            case _:
-                first_id, second_id = sorted(map(region_id.get, neighbors_in_region))
-                regions[first_id] |= regions[second_id]
-                regions[second_id] = regions[first_id]
-                regions[first_id].add(point)
-                region_id[point] = first_id
-    return {frozenset(region) for region in regions}
+        for neighbor in neighbors_in_region:
+            region[point] |= region[neighbor]
+        for regionmate in region[point] - {point}:
+            region[regionmate] = region[point]
+    return set(map(frozenset, region.values()))
 
 
 def area(region: frozenset[tuple[int, int]]) -> int:
     return len(region)
 
 
+def edges(region: frozenset[tuple[int, int]]) -> int:
+    region_vectors = {Vector(*plot) for plot in region}
+    cardinal_directions = [Vector(*direction.offsets()) for direction in Direction]
+    boundary_edge_segments = {
+        (plot, direction)
+        for plot in region_vectors
+        for direction in cardinal_directions
+        if plot + direction not in region_vectors
+    }
+    boundary_edge_representatives = boundary_edge_segments - {
+        (
+            plot + Vector(
+                *Direction(
+                    complex(*reversed(direction))
+                ).rotate_clockwise().offsets()
+            ),
+            direction
+        )
+        for plot, direction in boundary_edge_segments
+    }
+    return len(boundary_edge_representatives)
+
+
 def perimeter(region: frozenset[tuple[int, int]]) -> int:
     return sum(_plot_perimeter(plot, region) for plot in region)
 
 
-def fence_cost(garden: dict[tuple[int, int], str]) -> int:
+def fence_cost(garden: dict[tuple[int, int], str], bulk_discount=False) -> int:
+    length_function = edges if bulk_discount else perimeter
     return sum(
-        area(region) * perimeter(region)
+        area(region) * length_function(region)
         for region in garden_regions(garden)
     )
 
@@ -67,4 +105,4 @@ def _neighbors(node, grid_shape=(math.inf, math.inf), directions=('up', 'down', 
                 0 <= neighbor_row < grid_shape[0]
                 and 0 <= neighbor_column < grid_shape[1]
         ):
-            yield (neighbor_row, neighbor_column)
+            yield neighbor_row, neighbor_column
