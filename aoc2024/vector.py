@@ -16,6 +16,9 @@ class Vector[T]:
     def __setitem__(self, key, value):
         raise TypeError('Vectors are immutable.')
 
+    def __len__(self) -> int:
+        return len(self._components)
+
     def __iter__(self):
         return iter(self._components)
 
