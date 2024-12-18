@@ -1,3 +1,5 @@
+from tqdm import tqdm
+
 from aoc2024 import utilities
 from aoc2024.guard_simulator_2024 import GuardedLab
 
@@ -15,9 +17,10 @@ def solve_part_two():
     *_, lab = iter(lab)
     visited_positions = lab.visited - {guard_start_position}
     number_of_loop_positions = 0
-    for index, visited_position in enumerate(visited_positions):
-        if index % 100 == 0:
-            print('Testing position', index + 1, 'of', len(visited_positions))
+    for index, visited_position in tqdm(
+            enumerate(visited_positions), total=len(visited_positions),
+            desc='Checking visited positions', leave=False
+    ):
         lab.reset()
         lab.add_guard(guard_start_position, guard_start_orientation)
         lab.block(visited_position)
