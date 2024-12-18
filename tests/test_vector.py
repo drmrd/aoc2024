@@ -1,11 +1,13 @@
 import hypothesis as hyp
 import hypothesis.strategies as st
 
-from aoc2024.vector import DimensionMismatch, Vector
+from aoc2024.vector import Vector
 
 
 @st.composite
-def components(draw, dimension=st.integers(min_value=1)) -> tuple:
+def components(
+        draw, dimension=st.integers(min_value=1), nonzero=False
+) -> tuple:
     # Complex numbers removed, since their strategy does not appear to
     # obey allow_nan.
     finite_real_strategies = [
@@ -17,9 +19,12 @@ def components(draw, dimension=st.integers(min_value=1)) -> tuple:
     ]))
     if isinstance(dimension, st.SearchStrategy):
         dimension = draw(dimension)
-    return draw(st.lists(
+    components = draw(st.lists(
         component_strategy(), min_size=dimension, max_size=dimension
     ))
+    if nonzero:
+        hyp.assume(all(component != 0 for component in components))
+    return components
 
 
 @st.composite
@@ -53,3 +58,19 @@ def test_vector_arithmetic(components1, components2, scalar):
     assert -vector1 == negation
     assert scalar * vector1 == scalar_product
     assert vector1 * scalar == scalar_product
+
+
+@hyp.given(
+    components1=components(dimension=3),
+    components2=components(dimension=3, nonzero=True),
+    scalar=st.integers(min_value=1)
+)
+def test_vector_modular_arithmetic(components1, components2, scalar):
+    vector1 = Vector(*components1)
+    vector2 = Vector(*components2)
+
+    remainder = Vector(*(x % y for x, y in zip(components1, components2)))
+    remainder_mod_scalar = Vector(*(x % scalar for x in components1))
+
+    assert vector1 % vector2 == remainder
+    assert vector1 % scalar == remainder_mod_scalar

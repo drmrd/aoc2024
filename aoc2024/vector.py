@@ -27,6 +27,7 @@ class Vector[T]:
         return Vector(*(x + other_x for x, other_x in zip(self, other)))
 
     def __radd__(self, other):
+        self._raise_on_dimension_mismatch(other)
         return self + other
 
     def __sub__(self, other):
@@ -44,6 +45,7 @@ class Vector[T]:
         if isinstance(other, numbers.Number):
             return Vector(*(other * x for x in self))
         elif isinstance(other, Vector):
+            self._raise_on_dimension_mismatch(other)
             return Vector(*(x * other_x for x, other_x in zip(self, other)))
         raise ValueError(
             'No implementation for the product of types Vector and '
@@ -52,6 +54,17 @@ class Vector[T]:
 
     def __rmul__(self, other):
         return self * other
+
+    def __mod__(self, other):
+        if isinstance(other, numbers.Number):
+            return Vector(*(x % other for x in self))
+        elif isinstance(other, Vector):
+            self._raise_on_dimension_mismatch(other)
+            return Vector(*(x % other_x for x, other_x in zip(self, other)))
+        raise ValueError(
+            'Modulo operator not implemented for the types Vector and '
+            f'{type(other)}.'
+        )
 
     def __eq__(self, other):
         return all(x == other_x for x, other_x in zip(self, other))
