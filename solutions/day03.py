@@ -3,7 +3,7 @@ from aoc2024 import compuboggan, utilities
 
 def solve_part_one():
     source_code = '\n'.join(utilities.input_lines(day=3))
-    return compuboggan.eval(source_code)
+    return compuboggan.eval(source_code, command_whitelist={'do', 'mul'})
 
 
 def solve_part_two():

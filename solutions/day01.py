@@ -10,10 +10,7 @@ def solve_part_two():
 
 
 def _location_id_lists() -> tuple[list[int], list[int]]:
-    puzzle_inputs = [
-        [int(location_id) for location_id in line.split()]
-        for line in utilities.input_lines(day=1)
-    ]
+    puzzle_inputs = utilities.input_grid(day=1, colsep='   ', caster=int)
     list1 = [first_id for first_id, _ in puzzle_inputs]
     list2 = [second_id for _, second_id in puzzle_inputs]
     return list1, list2
