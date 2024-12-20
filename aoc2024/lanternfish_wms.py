@@ -172,7 +172,7 @@ class Warehouse:
     roe_bot: RoeBot | None
 
     def to_lanternfish_map(self) -> str:
-        map_ = [['.' for column in row] for row in self.grid]
+        map_ = [['.' for _ in row] for row in self.grid]
         for row in range(self.shape[0]):
             for column in range(self.shape[1]):
                 if (

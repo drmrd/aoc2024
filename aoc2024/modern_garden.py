@@ -38,7 +38,7 @@ def garden_regions(garden: dict[tuple[int, int], str]) -> set[frozenset[tuple[in
         neighbors_in_region = [
             neighbor
             for neighbor in _neighbors(point, garden_shape, ('up', 'left'))
-            if garden[point] == garden[neighbor]
+            if garden[point] == garden[neighbor]  # type: ignore
         ]
         for neighbor in neighbors_in_region:
             region[point] |= region[neighbor]

@@ -1,4 +1,4 @@
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
 from pathlib import Path
 
 
@@ -13,7 +13,7 @@ def input_grid(
         caster = lambda x: x
 
     if rowsep is None:
-        lines = input_lines(day)
+        lines: Iterable = input_lines(day)
     else:
         read_text_kwargs = {
             'newline': (

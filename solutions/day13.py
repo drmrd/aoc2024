@@ -34,7 +34,9 @@ def claw_machines() -> Iterator[tuple[int, int, int, int, int, int]]:
         ]),
         '\n'.join(utilities.input_lines(day=13))
     ):
-        yield (int(coefficient) for coefficient in claw_machine.groups())
+        yield tuple(
+            int(coefficient) for coefficient in claw_machine.groups()
+        )  # type: ignore
 
 
 def intersection_point(
