@@ -10,6 +10,7 @@ readme = "README.md"
 python = "^3.13"
 tqdm = "^4.67.1"
 pygame = "^2.6.1"
+types-tqdm = "^4.67.0.20241119"
 
 
 [tool.poetry.group.dev.dependencies]
