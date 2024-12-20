@@ -79,15 +79,6 @@ class Entity:
                 neighbor.move(direction, first_mover=False)
         else:
             return
-                # try:
-                # except MovingTheImmovable as error:
-                #     if first_mover:
-                #         if neighbors:
-                #             continue
-                #         else:
-                #             return
-                #     else:
-                #         raise error
         new_footprint = [
             position + direction.grid_vector for position in self.footprint
         ]
