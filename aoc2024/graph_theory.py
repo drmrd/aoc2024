@@ -30,7 +30,7 @@ class Graph[T: Hashable]:
         return EdgeView(self._edges, self._edge_weights, self.is_directed)
 
     @cached_property
-    def nodes(self) -> list[Node[T]]:
+    def nodes(self) -> Sequence[Node[T]]:
         return self._nodes
 
 
@@ -55,7 +55,7 @@ class DiGraph[T: Hashable]:
         return EdgeView(self._edges, self._edge_weights, self.is_directed)
 
     @cached_property
-    def nodes(self) -> list[T]:
+    def nodes(self) -> Sequence[T]:
         return self._nodes
 
     @cache
