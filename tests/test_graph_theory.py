@@ -82,6 +82,21 @@ class TestCommonProperties:
             )
 
 
+class TestGraph:
+    def test_can_retrieve_neighbors_of_a_given_node(self):
+        G = Graph((0, 1), (1, 2), (2, 3), (3, 4), (3, 0), (0, 2), (0, 4))
+        expected_neighbors_map = {
+            0: {1, 2, 3, 4}, 1: {0, 2}, 2: {0, 1, 3}, 3: {0, 2, 4}, 4: {0, 3}
+        }
+        for node, expected_neighbors in expected_neighbors_map.items():
+            actual_neighbors = G.neighbors(node)
+            assert actual_neighbors == expected_neighbors, (
+                f'Expected node {node} to have neighbors '
+                f'{expected_neighbors}, but its actual neighbors are '
+                f'{actual_neighbors}.'
+            )
+
+
 class TestDiGraph:
     def test_can_retrieve_parents_and_children_of_a_given_node(self):
         G = DiGraph((0, 1), (1, 2), (2, 3), (3, 4), (3, 0), (0, 2), (0, 4))
