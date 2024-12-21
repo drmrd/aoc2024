@@ -1,21 +1,40 @@
+from __future__ import annotations
+
 import copy
 import itertools
 from collections import deque
-from collections.abc import Hashable, Set, Sequence
+from collections.abc import Hashable, Set, Sequence, Mapping
 from functools import cached_property, cache
+from typing import Any
 
 
 class Graph[T: Hashable]:
-    def __init__(self, *edges):
-        self._edges = list(edges)
+    def __init__(
+            self,
+            *edges: *(tuple[T, T] | tuple[T, T, Any]),
+            default_edge_weight: Any = None
+    ):
+        self._edges: list[tuple[T, T]] = [
+            (source, target) for source, target, *_ in edges
+        ]
+        self._edge_weights: dict[tuple[T, T], dict[str, Any]] = {}
+        for source, target, *weight in edges:
+            if len(weight) > 1:
+                raise ValueError(
+                    'Providing multiple weights per edge in tuples passed to '
+                    'the constructor is not supported.'
+                )
+            self._edge_weights[source, target] = {
+                'weight': weight[0] if weight else default_edge_weight
+            }
         self._nodes = list({
-            *(source_node for source_node, _ in edges),
-            *(target_node for _, target_node in edges)
+            *(source_node for source_node, _ in self._edges),
+            *(target_node for _, target_node in self._edges)
         })
 
     @cached_property
-    def edges(self) -> list[tuple[T, T]]:
-        return EdgeView(self._edges)
+    def edges(self) -> EdgeView[T]:
+        return EdgeView(self._edges, self._edge_weights)
 
     @cached_property
     def nodes(self) -> list[T]:
@@ -86,9 +105,17 @@ class DiGraph[T: Hashable]:
         return list(sorted_nodes)
 
 
-class EdgeView[T: Hashable](Set):
-    def __init__(self, edges: Sequence[tuple[T, T]]):
+class EdgeView[T: Hashable](Mapping, Set):
+    def __init__(
+            self,
+            edges: Sequence[tuple[T, T]],
+            edge_weights: Mapping[tuple[T, T], Mapping[str, Any]]
+    ):
         self._edges = edges
+        self._edge_weights = edge_weights
+
+    def __getitem__(self, key, /):
+        return self._edge_weights[key]
 
     def __contains__(self, item):
         return (
