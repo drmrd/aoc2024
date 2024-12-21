@@ -33,6 +33,14 @@ class Graph[T: Hashable]:
     def nodes(self) -> Sequence[Node[T]]:
         return self._nodes
 
+    @cache
+    def neighbors(self, node: Node) -> Set[T]:
+        return {
+            neighbor
+            for neighbor in self.nodes
+            if (node, neighbor) in self.edges or (neighbor, node) in self.edges
+        }
+
 
 class DiGraph[T: Hashable]:
     def __init__(
