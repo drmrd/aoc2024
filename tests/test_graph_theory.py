@@ -1,3 +1,5 @@
+import pytest
+
 from aoc2024.graph_theory import DiGraph, Graph
 
 
@@ -13,7 +15,11 @@ def test_graph_can_be_constructed_from_edges():
     assert set(expected_edges) == set(G.edges)
 
 
-def test_graph_can_be_constructed_from_weighted_edges():
+@pytest.mark.parametrize(
+    ['expected_default_weight'],
+    [[None], ['🚀🚀🚀'], [[1, 2.3, 4.56]]]
+)
+def test_graph_can_be_constructed_from_weighted_edges(expected_default_weight):
     expected_nodes = [0, 1, 2, 3, 4, 5, 6, 7, 37, 53, 137]
     expected_weighted_edges = [
         (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6), (6, 7), (7, 4)
@@ -28,7 +34,8 @@ def test_graph_can_be_constructed_from_weighted_edges():
                 expected_weighted_edges, expected_edge_weights
             )
         ),
-        *expected_unweighted_edges
+        *expected_unweighted_edges,
+        default_edge_weight=expected_default_weight
     )
 
     assert set(expected_nodes) == set(G.nodes)
@@ -36,7 +43,11 @@ def test_graph_can_be_constructed_from_weighted_edges():
     for edge, expected_weight in zip(expected_weighted_edges, expected_edge_weights):
         assert G.edges[edge]['weight'] == expected_weight
     for edge in expected_unweighted_edges:
-        assert G.edges[edge]['weight'] is None
+        edge_weight = G.edges[edge]['weight']
+        if expected_default_weight is None:
+            assert edge_weight is expected_default_weight
+        else:
+            assert edge_weight == expected_default_weight
 
 
 def test_graph_edges_are_undirected():
