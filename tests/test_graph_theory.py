@@ -95,8 +95,8 @@ class TestDiGraph:
             )
         for node, expected_children in expected_children.items():
             assert set(G.children(node)) == expected_children, (
-                f'Node {node} has children {G.children(node)}, not the expected '
-                f'children {expected_children}'
+                f'Node {node} has children {G.children(node)}, not the '
+                f'expected children {expected_children}'
             )
 
     def test_dags_can_be_topologically_sorted(self):

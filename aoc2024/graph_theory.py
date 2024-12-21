@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import itertools
 from collections import deque
 from collections.abc import Hashable, Set, Sequence, Mapping
 from functools import cached_property, cache
@@ -70,10 +69,6 @@ class DiGraph[T: Hashable]:
             *(source_node for source_node, _ in self._edges),
             *(target_node for _, target_node in self._edges)
         })
-        self._adjacency_map = {
-            (source, target): (source, target) in self._edges
-            for source, target in itertools.product(self._nodes, repeat=2)
-        }
 
     @property
     def is_directed(self) -> bool:
@@ -92,7 +87,7 @@ class DiGraph[T: Hashable]:
         return {
             parent
             for parent in self.nodes
-            if self._adjacency_map[parent, child]
+            if (parent, child) in self._edges
         }
 
     @cache
@@ -100,7 +95,7 @@ class DiGraph[T: Hashable]:
         return {
             child
             for child in self.nodes
-            if self._adjacency_map[parent, child]
+            if (parent, child) in self._edges
         }
 
     def sort_topologically(self) -> list[T]:
