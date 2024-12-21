@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import deque
-from collections.abc import Hashable, Set, Sequence, Mapping
+from collections.abc import Hashable, Set, Sequence, Mapping, Iterable
 from functools import cached_property, cache
 from typing import Any
 
@@ -15,23 +15,11 @@ class Graph[T: Hashable]:
             *edges: *(Edge | tuple[*Edge, Any]),
             default_edge_weight: Any = None
     ):
-        self._edges: list[Edge] = [
-            (source, target) for source, target, *_ in edges
-        ]
-        self._edge_weights: dict[Edge, dict[str, Any]] = {}
-        for source, target, *weight in edges:
-            if len(weight) > 1:
-                raise ValueError(
-                    'Providing multiple weights per edge in tuples passed to '
-                    'the constructor is not supported.'
-                )
-            self._edge_weights[source, target] = {
-                'weight': weight[0] if weight else default_edge_weight
-            }
-        self._nodes: list[Node] = list({
-            *(source_node for source_node, _ in self._edges),
-            *(target_node for _, target_node in self._edges)
-        })
+        self._edges = _build_edge_list(edges)
+        self._edge_weights = _build_edge_weights_map(
+            edges, default_edge_weight
+        )
+        self._nodes = _build_node_list(self._edges)
 
     @property
     def is_directed(self) -> bool:
@@ -52,23 +40,11 @@ class DiGraph[T: Hashable]:
             *edges: *(Edge | tuple[*Edge, Any]),
             default_edge_weight: Any = None
     ):
-        self._edges: list[Edge] = [
-            (source, target) for source, target, *_ in edges
-        ]
-        self._edge_weights: dict[Edge, dict[str, Any]] = {}
-        for source, target, *weight in edges:
-            if len(weight) > 1:
-                raise ValueError(
-                    'Providing multiple weights per edge in tuples passed to '
-                    'the constructor is not supported.'
-                )
-            self._edge_weights[source, target] = {
-                'weight': weight[0] if weight else default_edge_weight
-            }
-        self._nodes: list[Node] = list({
-            *(source_node for source_node, _ in self._edges),
-            *(target_node for _, target_node in self._edges)
-        })
+        self._edges = _build_edge_list(edges)
+        self._edge_weights = _build_edge_weights_map(
+            edges, default_edge_weight
+        )
+        self._nodes = _build_node_list(self._edges)
 
     @property
     def is_directed(self) -> bool:
@@ -154,3 +130,37 @@ class EdgeView[Edge: Hashable](Mapping, Set):
 
     def __len__(self):
         return len(self._edges)
+
+
+def _build_edge_list[T: Hashable](
+        weighted_edges: Iterable[tuple[*Edge[T], Any]]
+) -> Sequence[Edge[T]]:
+    return [
+        (source, target) for source, target, *_ in weighted_edges
+    ]
+
+
+def _build_edge_weights_map[T: Hashable](
+        weighted_edges: Iterable[tuple[*Edge[T], Any]],
+        default_edge_weight: Any
+) -> Mapping[Edge[T], dict[str, Any]]:
+    edge_weights = {}
+    for source, target, *weight in weighted_edges:
+        if len(weight) > 1:
+            raise ValueError(
+                'Providing multiple weights per edge in tuples passed to '
+                'the constructor is not supported.'
+            )
+        edge_weights[source, target] = {
+            'weight': weight[0] if weight else default_edge_weight
+        }
+    return edge_weights
+
+
+def _build_node_list[T: Hashable](
+        edges: Sequence[Edge[T]]
+) -> Sequence[Node[T]]:
+    return list({
+        *(source_node for source_node, _ in edges),
+        *(target_node for _, target_node in edges)
+    })
