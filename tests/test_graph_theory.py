@@ -1,3 +1,5 @@
+import math
+
 import pytest
 
 from aoc2024.graph_theory import DiGraph, Graph
@@ -95,6 +97,21 @@ class TestGraph:
                 f'{expected_neighbors}, but its actual neighbors are '
                 f'{actual_neighbors}.'
             )
+
+    def test_can_compute_all_shortest_paths_from_a_source_node(self):
+        G = Graph(
+            (0, 1, 5), (1, 2, 3), (2, 3, 7), (3, 4, 5),
+            (0, 2, 7), (0, 4, 10),
+            (10, 11, 1)
+        )
+
+        expected_distance = {
+            0: 0, 1: 5, 2: 7, 3: 14, 4: 10, 10: math.inf, 11: math.inf
+        }
+        assert G.shortest_distance(0) == expected_distance
+
+        for target in G.nodes:
+            assert G.shortest_distance(0, target) == expected_distance[target]
 
 
 class TestDiGraph:
