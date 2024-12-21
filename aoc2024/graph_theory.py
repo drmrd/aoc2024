@@ -1,8 +1,11 @@
 import copy
+import itertools
 from collections import deque
+from collections.abc import Hashable
+from functools import cached_property, cache
 
 
-class DiGraph[T]:
+class Graph[T: Hashable]:
     def __init__(self, *edges):
         self._edges = list(edges)
         self._nodes = list({
@@ -10,19 +13,50 @@ class DiGraph[T]:
             *(target_node for _, target_node in edges)
         })
 
-    @property
+    @cached_property
     def edges(self) -> list[tuple[T, T]]:
         return self._edges
 
-    @property
+    @cached_property
     def nodes(self) -> list[T]:
         return self._nodes
 
-    def parents(self, child: T) -> set[T]:
-        return {parent for parent in self.nodes if (parent, child) in self.edges}
 
+class DiGraph[T: Hashable]:
+    def __init__(self, *edges):
+        self._edges = list(edges)
+        self._nodes = list({
+            *(source_node for source_node, _ in edges),
+            *(target_node for _, target_node in edges)
+        })
+        self._adjacency_map = {
+            (source, target): (source, target) in self._edges
+            for source, target in itertools.product(self._nodes, repeat=2)
+        }
+
+    @cached_property
+    def edges(self) -> list[tuple[T, T]]:
+        return self._edges
+
+    @cached_property
+    def nodes(self) -> list[T]:
+        return self._nodes
+
+    @cache
+    def parents(self, child: T) -> set[T]:
+        return {
+            parent
+            for parent in self.nodes
+            if self._adjacency_map[parent, child]
+        }
+
+    @cache
     def children(self, parent: T) -> set[T]:
-        return {child for child in self.nodes if (parent, child) in self.edges}
+        return {
+            child
+            for child in self.nodes
+            if self._adjacency_map[parent, child]
+        }
 
     def sort_topologically(self) -> list[T]:
         sorted_nodes: deque[T] = deque()

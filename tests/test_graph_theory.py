@@ -1,7 +1,19 @@
-from aoc2024.graph_theory import DiGraph
+from aoc2024.graph_theory import DiGraph, Graph
 
 
 def test_graph_can_be_constructed_from_edges():
+    expected_nodes = [0, 1, 2, 3, 4, 5, 6, 7]
+    expected_edges = [
+        (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6), (6, 7), (7, 4)
+    ]
+
+    G = Graph(*expected_edges)
+
+    assert set(expected_nodes) == set(G.nodes)
+    assert set(expected_edges) == set(G.edges)
+
+
+def test_digraph_can_be_constructed_from_edges():
     expected_nodes = [0, 1, 2, 3, 4, 5, 6, 7]
     expected_edges = [
         (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6), (6, 7), (7, 4)
