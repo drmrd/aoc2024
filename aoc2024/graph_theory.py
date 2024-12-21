@@ -1,7 +1,7 @@
 import copy
 import itertools
 from collections import deque
-from collections.abc import Hashable
+from collections.abc import Hashable, Set, Sequence
 from functools import cached_property, cache
 
 
@@ -15,7 +15,7 @@ class Graph[T: Hashable]:
 
     @cached_property
     def edges(self) -> list[tuple[T, T]]:
-        return self._edges
+        return EdgeView(self._edges)
 
     @cached_property
     def nodes(self) -> list[T]:
@@ -84,3 +84,20 @@ class DiGraph[T: Hashable]:
                     remaining_nodes.remove(unvisited_child)
 
         return list(sorted_nodes)
+
+
+class EdgeView[T: Hashable](Set):
+    def __init__(self, edges: Sequence[tuple[T, T]]):
+        self._edges = edges
+
+    def __contains__(self, item):
+        return (
+            tuple(item) in self._edges
+            or tuple(item)[::-1] in self._edges
+        )
+
+    def __iter__(self):
+        return iter(self._edges)
+
+    def __len__(self):
+        return len(self._edges)

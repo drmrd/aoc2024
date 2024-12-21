@@ -13,6 +13,22 @@ def test_graph_can_be_constructed_from_edges():
     assert set(expected_edges) == set(G.edges)
 
 
+def test_graph_edges_are_undirected():
+    expected_edges = [
+        (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6), (6, 7), (7, 4)
+    ]
+
+    G = Graph(*expected_edges)
+
+    for source, target in expected_edges:
+        assert (source, target) in G.edges, (
+            f'{(source, target)} not found in G.edges'
+        )
+        assert (target, source) in G.edges, (
+            f'{(source, target)} is in G.edges, but {(target, source)} is not.'
+        )
+
+
 def test_digraph_can_be_constructed_from_edges():
     expected_nodes = [0, 1, 2, 3, 4, 5, 6, 7]
     expected_edges = [
@@ -23,6 +39,19 @@ def test_digraph_can_be_constructed_from_edges():
 
     assert set(expected_nodes) == set(G.nodes)
     assert set(expected_edges) == set(G.edges)
+
+
+def test_digraph_edges_are_directed():
+    expected_edges = [
+        (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6), (6, 7), (7, 4)
+    ]
+
+    G = DiGraph(*expected_edges)
+
+    for source, target in expected_edges:
+        assert (target, source) not in G.edges, (
+            f'Reversed edge {(target, source)} found in G.edges.'
+        )
 
 
 def test_can_retrieve_parents_and_children_of_a_given_node():
