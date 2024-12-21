@@ -14,23 +14,29 @@ def test_graph_can_be_constructed_from_edges():
 
 
 def test_graph_can_be_constructed_from_weighted_edges():
-    expected_nodes = [0, 1, 2, 3, 4, 5, 6, 7]
-    expected_edges = [
+    expected_nodes = [0, 1, 2, 3, 4, 5, 6, 7, 37, 53, 137]
+    expected_weighted_edges = [
         (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6), (6, 7), (7, 4)
     ]
-    expected_edge_weights = [sum(edge) for edge in expected_edges]
+    expected_unweighted_edges = [(0, 53), (1, 37), (2, 137)]
+    expected_edge_weights = [sum(edge) for edge in expected_weighted_edges]
 
-    G = Graph(*(
-        (source, target, weight)
-        for (source, target), weight in zip(
-            expected_edges, expected_edge_weights
-        )
-    ))
+    G = Graph(
+        *(
+            (source, target, weight)
+            for (source, target), weight in zip(
+                expected_weighted_edges, expected_edge_weights
+            )
+        ),
+        *expected_unweighted_edges
+    )
 
     assert set(expected_nodes) == set(G.nodes)
-    assert set(expected_edges) == set(G.edges)
-    for edge, expected_weight in zip(expected_edges, expected_edge_weights):
+    assert {*expected_weighted_edges, *expected_unweighted_edges} == set(G.edges)
+    for edge, expected_weight in zip(expected_weighted_edges, expected_edge_weights):
         assert G.edges[edge]['weight'] == expected_weight
+    for edge in expected_unweighted_edges:
+        assert G.edges[edge]['weight'] is None
 
 
 def test_graph_edges_are_undirected():
