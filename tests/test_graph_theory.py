@@ -13,6 +13,26 @@ def test_graph_can_be_constructed_from_edges():
     assert set(expected_edges) == set(G.edges)
 
 
+def test_graph_can_be_constructed_from_weighted_edges():
+    expected_nodes = [0, 1, 2, 3, 4, 5, 6, 7]
+    expected_edges = [
+        (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6), (6, 7), (7, 4)
+    ]
+    expected_edge_weights = [sum(edge) for edge in expected_edges]
+
+    G = Graph(*(
+        (source, target, weight)
+        for (source, target), weight in zip(
+            expected_edges, expected_edge_weights
+        )
+    ))
+
+    assert set(expected_nodes) == set(G.nodes)
+    assert set(expected_edges) == set(G.edges)
+    for edge, expected_weight in zip(expected_edges, expected_edge_weights):
+        assert G.edges[edge]['weight'] == expected_weight
+
+
 def test_graph_edges_are_undirected():
     expected_edges = [
         (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6), (6, 7), (7, 4)
