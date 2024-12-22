@@ -7,8 +7,8 @@ from aoc2024.graph_theory import DiGraph
 def correct_safety_manual_updates(
         page_ordering_rules: list[str], proposed_update_page_lists: list[list[int]]
 ) -> Iterator[list[int]]:
-    rules_as_edges = [
-        tuple(int(page) for page in rule.split('|'))
+    rules_as_edges: list[tuple[int, int]] = [
+        tuple(int(page) for page in rule.split('|'))  # type: ignore
         for rule in page_ordering_rules
     ]
     for page_list in proposed_update_page_lists:
@@ -47,7 +47,7 @@ def valid_safety_manual_updates(
             for rule_edge in rules_as_edges
             if set(rule_edge) <= page_set
         ]
-        rules_graph: DiGraph[int] = DiGraph(*page_list_rules)
+        rules_graph: DiGraph[int] = DiGraph(*page_list_rules)  # type: ignore
         totally_ordered_pages = rules_graph.sort_topologically()
 
         ordered_page_list_indices = [

@@ -4,48 +4,14 @@ import itertools
 from collections import deque
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
-from enum import Enum
-from functools import cached_property, lru_cache
 from typing import ClassVar, Type
 
+from aoc2024.pathfinding import Direction
 from aoc2024.vector import Vector
 
 
 class MovingTheImmovable(ValueError):
     pass
-
-
-class Direction(Enum):
-    UP = -1
-    DOWN = 1
-    LEFT = -1j
-    RIGHT = 1j
-
-    @cached_property
-    def grid_offsets(self) -> tuple[int, int]:
-        return int(self.value.real), int(self.value.imag)
-
-    @cached_property
-    def grid_vector(self) -> Vector[int]:
-        return Vector(*self.grid_offsets)
-
-    @lru_cache(4)
-    def rotate_counterclockwise(self) -> Direction:
-        return Direction(self.value * 1j)
-
-    @lru_cache(4)
-    def rotate_clockwise(self) -> Direction:
-        return Direction(self.value * -1j)
-
-    @classmethod
-    @lru_cache(16)
-    def from_caret(cls, caret: str) -> Direction:
-        try:
-            return {
-                '^': cls.UP, 'v': cls.DOWN, '<': cls.LEFT, '>': cls.RIGHT
-            }[caret]
-        except KeyError:
-            raise ValueError(f'Unknown direction caret "{caret}".')
 
 
 @dataclass
@@ -166,12 +132,9 @@ class Warehouse:
         map_ = [['.' for _ in row] for row in self.grid]
         for row in range(self.shape[0]):
             for column in range(self.shape[1]):
-                if (
-                        map_[row][column] != '.'
-                        or self.grid[row][column] is None
-                ):
-                    continue
                 entity = self.grid[row][column]
+                if map_[row][column] != '.' or entity is None:
+                    continue
                 for index, character in enumerate(entity.map_string):
                     map_row, map_column = entity.footprint[index]
                     map_[map_row][map_column] = entity.map_string[index]
@@ -260,7 +223,7 @@ class Warehouse:
 
 def _apply_dummy_thiccener(
         map_: list[str],
-        thiccened_map_strings: tuple[tuple[str, str]] = (
+        thiccened_map_strings: tuple[tuple[str, str], ...] = (
             (Wall.map_string, DummyThiccWall.map_string),
             (Box.map_string, DummyThiccBox.map_string)
         )
@@ -272,7 +235,7 @@ def _apply_dummy_thiccener(
     }
 
     def thiccen_row(row) -> str:
-        proto_thicc_row = deque()
+        proto_thicc_row: deque[str] = deque()
         column_index = 0
         while column_index < len(row):
             for unthicc, thicc in thiccened_string.items():

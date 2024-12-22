@@ -44,7 +44,7 @@ def garden_regions(garden: dict[tuple[int, int], str]) -> set[frozenset[tuple[in
             region[point] |= region[neighbor]
         for regionmate in region[point] - {point}:
             region[regionmate] = region[point]
-    return set(map(frozenset, region.values()))
+    return set(map(frozenset, region.values()))  # type: ignore
 
 
 def area(region: frozenset[tuple[int, int]]) -> int:
