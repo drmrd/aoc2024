@@ -11,7 +11,20 @@ def solve_part_one():
 
 
 def solve_part_two():
-    return 'TBD'
+    best_paths = (
+        Maze.from_map('\n'.join(utilities.input_lines(day=16)))
+            .find_best_paths()
+            .values()
+    )
+    best_score = min(score for _, score in best_paths)
+    best_path_positions = {
+        position
+        for paths, score in best_paths
+        for path in paths
+        for position, _ in path
+        if score == best_score
+    }
+    return len(best_path_positions)
 
 
 if __name__ == '__main__':

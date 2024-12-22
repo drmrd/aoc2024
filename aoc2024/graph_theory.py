@@ -70,34 +70,41 @@ class Graph[T: Hashable]:
             distance_to_node, node = heapq.heappop(heap)
 
             for neighbor in self.neighbors(node):
-                distance_to_neighbor = (
+                current_distance = distance_from_source[neighbor]
+                updated_distance = (
                     distance_to_node + self.edges[node, neighbor]['weight']
                 )
-                if distance_to_neighbor < distance_from_source[neighbor]:
-                    distance_from_source[neighbor] = distance_to_neighbor
-                    previous[neighbor] = node
-                    heapq.heappush(heap, (distance_to_neighbor, neighbor))
+                if updated_distance > current_distance:
+                    continue
+                elif updated_distance < current_distance:
+                    distance_from_source[neighbor] = updated_distance
+                    previous[neighbor] = {node}
+                else:
+                    previous[neighbor].add(node)
+                heapq.heappush(
+                    heap, (updated_distance, neighbor)
+                )
 
-        def prepare_path(
+        def prepare_paths(
                 target: Node,
-                previous: Mapping[Node, Node],
+                previous: Mapping[Node, set[Node]],
                 with_distance: bool
         ):
             if target in previous:
-                path = _ancestor_sequence(target, previous)
+                paths = _ancestor_sequences(target, previous)
             else:
-                path = None
+                paths = None
 
             if with_distance:
-                return path, distance_from_source.get(target, math.inf)
+                return paths, distance_from_source.get(target, math.inf)
             else:
-                return path
+                return paths
 
         if target is not None:
-            return prepare_path(target, previous, with_distance)
+            return prepare_paths(target, previous, with_distance)
         else:
             return {
-                target: prepare_path(target, previous, with_distance)
+                target: prepare_paths(target, previous, with_distance)
                 for target in self.nodes
             }
 
@@ -237,24 +244,24 @@ def _build_node_list[T: Hashable](
     })
 
 
-def _ancestor_sequence[T: Hashable](
+def _ancestor_sequences[T: Hashable](
         node: Node[T],
-        predecessor_tree: Mapping[Node[T], Node[T] | None],
-        seen: set[Node[T]] | None = None,
-        sequence: deque[Node[T]] | None = None
-) -> Sequence[Node[T]]:
-    if seen is None:
-        seen = set()
-    if sequence is None:
-        sequence = deque([node])
-    if (previous_node := predecessor_tree[node]) is not None:
-        if previous_node in seen:
-            raise CycleError('Cycle detected in predecessor tree.')
-
-        sequence.appendleft(previous_node)
-        seen.add(previous_node)
-        return _ancestor_sequence(
-            previous_node, predecessor_tree, seen, sequence
+        predecessor_set: Mapping[Node[T], set[Node[T]] | None],
+        # seen: set[Node[T]] | None = None,
+        sequence_tails: list[list[Node[T]]] | None = None
+) -> Sequence[Sequence[Node[T]]]:
+    if sequence_tails is None:
+        sequence_tails = [[node]]
+    predecessors = predecessor_set[node]
+    if predecessors is None:
+        return sequence_tails
+    ancestor_sequences = []
+    for predecessor in predecessors:
+        ancestor_sequences.extend(
+            _ancestor_sequences(
+                predecessor,
+                predecessor_set,
+                [[predecessor, *tail] for tail in sequence_tails]
+            )
         )
-    else:
-        return list(sequence)
+    return ancestor_sequences
