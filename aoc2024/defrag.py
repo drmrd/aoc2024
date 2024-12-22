@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from itertools import chain, repeat, zip_longest, groupby
 from operator import itemgetter
 
 
 class DiskMap:
-    def __init__(self, block_ids: list[int]):
+    def __init__(self, block_ids: list[int | None]):
         self.block_ids = block_ids
 
     @property
@@ -79,11 +80,15 @@ class DiskMap:
 
     @staticmethod
     def from_dense_map(dense_map: str) -> DiskMap:
-        block_ids = chain.from_iterable(
+        block_ids: Iterable[int | None] = chain.from_iterable(
             chain.from_iterable((
-            (repeat(file_id, int(file_blocks)), repeat(None, int(free_blocks)))
-            for file_id, (file_blocks, free_blocks) in enumerate(
-                zip_longest(dense_map[::2], dense_map[1::2], fillvalue=0)
-            )
-        )))
+                (
+                    repeat(file_id, int(file_blocks)),
+                    repeat(None, int(free_blocks))
+                )
+                for file_id, (file_blocks, free_blocks) in enumerate(
+                    zip_longest(dense_map[::2], dense_map[1::2], fillvalue=0)
+                )
+            ))
+        )
         return DiskMap(list(block_ids))
