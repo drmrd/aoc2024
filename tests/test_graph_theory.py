@@ -148,12 +148,18 @@ class TestGraph:
         )
 
         expected_distance = {
-            0: 0, 1: 5, 2: 7, 3: 14, 4: 10, 10: math.inf, 11: math.inf
+            0: ([[0]], 0),
+            1: ([[0, 1]], 5),
+            2: ([[0, 2]], 7),
+            3: ([[0, 2, 3]], 14),
+            4: ([[0, 4]], 10),
+            10: (None, math.inf),
+            11: (None, math.inf)
         }
-        assert G.shortest_distance(0) == expected_distance
+        assert G.shortest_path(0) == expected_distance
 
         for target in G.nodes:
-            assert G.shortest_distance(0, target) == expected_distance[target]
+            assert G.shortest_path(0, target) == expected_distance[target]
 
 
 class TestDiGraph:
