@@ -121,13 +121,21 @@ class Graph[T: Hashable]:
             self,
             source: Node,
             target: Node | None = None,
-            with_distance: bool = True
+            with_distance: bool = True,
+            edge_weight = 'weight'
     ) -> Union[
             Sequence[Node],
             tuple[Sequence[Node], float],
             Mapping[Node, Sequence[Node]],
             Mapping[Node, tuple[Sequence[Node], float]]
     ]:
+        if isinstance(edge_weight, str):
+            def get_weight(edge):
+                return self.edges[edge][edge_weight]
+        else:
+            def get_weight(edge):
+                return edge_weight
+
         distance_from_source: defaultdict[Node, float] = defaultdict(
             lambda: math.inf
         )
@@ -141,7 +149,7 @@ class Graph[T: Hashable]:
             for neighbor in self.neighbors(node):
                 current_distance = distance_from_source[neighbor]
                 updated_distance = (
-                    distance_to_node + self.edges[node, neighbor]['weight']
+                    distance_to_node + get_weight((node, neighbor))
                 )
                 if updated_distance > current_distance:
                     continue
