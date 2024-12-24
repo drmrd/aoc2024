@@ -264,7 +264,17 @@ class TestGraphConstructors:
             grid_node = tuple(map(int, pushed_byte.split(',')))[::-1]
             memory_space.remove_node(grid_node)
 
-        paths, distance = memory_space.shortest_path(
-            source=(0, 0), target=(6, 6), edge_weight=1
+        def taxicab(node1, node2):
+            if len(node1) != len(node2):
+                raise ValueError(
+                    f'Dimension mismatch between nodes {node1} and {node2}.'
+                )
+            return sum(
+                abs(entry1 - entry2)
+                for entry1, entry2 in zip(node1, node2)
+            )
+
+        path, distance = memory_space.shortest_path_astar(
+            source=(0, 0), target=(6, 6), heuristic=taxicab, edge_weight=1
         )
         assert distance == 22
