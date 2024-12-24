@@ -83,6 +83,18 @@ class TestCommonProperties:
                 f'G.edges, the reversed edge {(target, source)} is not.'
             )
 
+    def test_can_add_nodes_to_graph(self, graph_class):
+        expected_edges = [
+            (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6), (6, 7)
+        ]
+        G = graph_class(*expected_edges)
+        assert set(G.nodes) == set(range(8))
+
+        G.add_node(8)
+        G.add_node(9)
+
+        assert set(G.nodes) == set(range(10))
+
 
 class TestGraph:
     def test_can_retrieve_neighbors_of_a_given_node(self):
