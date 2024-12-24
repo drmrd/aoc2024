@@ -43,8 +43,32 @@ class Graph[T: Hashable]:
     def nodes(self) -> Sequence[Node[T]]:
         return self._nodes
 
-    def add_node(self, node: T):
+    def add_node(self, node: Node[T]):
+        if node in self._nodes:
+            return
         self._nodes.append(node)
+        self._neighbors[node] = self._neighbors.get(node, set())
+
+        try:
+            del self.__dict__['nodes']
+        except KeyError:
+            pass
+
+    def add_edge(self, edge: Edge[T]):
+        self._edges.append(edge)
+        for node in edge:
+            self.add_node(node)
+
+        self._neighbors[edge[0]].add(edge[1])
+        self._neighbors[edge[1]].add(edge[0])
+
+        self.neighbors.cache_clear()
+        self.shortest_path.cache_clear()
+
+        try:
+            del self.__dict__['edges']
+        except KeyError:
+            pass
 
     @cache
     def neighbors(self, node: Node) -> Set[T]:
@@ -136,8 +160,29 @@ class DiGraph[T: Hashable]:
     def nodes(self) -> Sequence[T]:
         return self._nodes
 
-    def add_node(self, node: T):
+    def add_node(self, node: Node[T]):
+        if node in self._nodes:
+            return
         self._nodes.append(node)
+
+        try:
+            del self.__dict__['nodes']
+        except KeyError:
+            pass
+
+    def add_edge(self, edge: Edge[T]):
+        self._edges.append(edge)
+        for node in edge:
+            self.add_node(node)
+
+        self.parents.cache_clear()
+        self.children.cache_clear()
+
+        for cached_attribute in ('edges'):
+            try:
+                del self.__dict__[cached_attribute]
+            except KeyError:
+                pass
 
     @cache
     def parents(self, child: T) -> set[T]:
@@ -215,7 +260,7 @@ class EdgeView[Edge: Hashable](Mapping, Set):
 
 def _build_edge_list[T: Hashable](
         weighted_edges: tuple[Edge[T] | tuple[*Edge[T], Any], ...]
-) -> Sequence[Edge[T]]:
+) -> list[Edge[T]]:
     return [
         (source, target) for source, target, *_ in weighted_edges
     ]
