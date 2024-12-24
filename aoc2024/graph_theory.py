@@ -4,7 +4,7 @@ import heapq
 import itertools
 import math
 from collections import deque, defaultdict
-from collections.abc import Hashable, Set, Sequence, Mapping
+from collections.abc import Hashable, Set, Sequence, Mapping, Callable
 from functools import cached_property, cache
 from typing import Any, Union
 
@@ -65,6 +65,7 @@ class Graph[T: Hashable]:
 
         self.neighbors.cache_clear()
         self.shortest_path.cache_clear()
+        self.shortest_path_astar.cache_clear()
 
         try:
             del self.__dict__['edges']
@@ -84,6 +85,7 @@ class Graph[T: Hashable]:
         del self._neighbors[node]
         self.neighbors.cache_clear()
         self.shortest_path.cache_clear()
+        self.shortest_path_astar.cache_clear()
 
         for cached_property_name in ('nodes', 'edges'):
             try:
@@ -106,6 +108,7 @@ class Graph[T: Hashable]:
 
         self.neighbors.cache_clear()
         self.shortest_path.cache_clear()
+        self.shortest_path_astar.cache_clear()
 
         try:
             del self.__dict__['edges']
@@ -143,8 +146,15 @@ class Graph[T: Hashable]:
         previous = {source: None}
         heap = [(0, source)]
 
+        seen = set()
+        total_seen = 0
+        total_nodes = len(self.nodes)
         while heap:
             distance_to_node, node = heapq.heappop(heap)
+            seen.add(node)
+            if (new_total := len(seen)) > total_seen:
+                print('Looking at new node', node, f'(total seen {new_total} / {total_nodes}).')
+                total_seen = new_total
 
             for neighbor in self.neighbors(node):
                 current_distance = distance_from_source[neighbor]
@@ -184,6 +194,92 @@ class Graph[T: Hashable]:
                 target: prepare_paths(target, previous, with_distance)
                 for target in self.nodes
             }
+
+    @cache
+    def shortest_path_astar(
+            self,
+            source: Node,
+            target: Node,
+            heuristic: Callable[[Edge, Edge], float],
+            edge_weight = 'weight'
+    ) -> tuple[Sequence[Node], float]:
+        if isinstance(edge_weight, str):
+            def get_weight(edge):
+                return self.edges[edge][edge_weight]
+        else:
+            def get_weight(edge):
+                return edge_weight
+
+        def recover_path(parent, end):
+            current = end
+            path = deque([current])
+            while current in previous:
+                current = previous[current]
+                path.appendleft(current)
+            return list(path)
+
+        score_best_known: defaultdict[Node, float] = defaultdict(
+            lambda: math.inf
+        )
+        # g_score
+        score_best_known[source] = 0
+
+        score_through_node: defaultdict[Node, float] = defaultdict(
+            lambda: math.inf
+        )
+        # f_score
+        score_through_node[source] = heuristic(source, target)
+
+        open_set = []  # list of entries arranged in a heap
+        entry_finder = {}  # mapping of tasks to entries
+        REMOVED = '<removed-task>'  # placeholder for a removed task
+        counter = itertools.count()  # unique sequence count
+
+        def add_task(task, priority: float = 0):
+            'Add a new task or update the priority of an existing task'
+            if task in entry_finder:
+                remove_task(task)
+            count = next(counter)
+            entry = [priority, count, task]
+            entry_finder[task] = entry
+            heapq.heappush(open_set, entry)
+
+        def remove_task(task):
+            'Mark an existing task as REMOVED.  Raise KeyError if not found.'
+            entry = entry_finder.pop(task)
+            entry[-1] = REMOVED
+
+        def pop_task():
+            'Remove and return the lowest priority task. Raise KeyError if empty.'
+            while open_set:
+                priority, count, task = heapq.heappop(open_set)
+                if task is not REMOVED:
+                    del entry_finder[task]
+                    return task, priority
+            raise KeyError('pop from an empty priority queue')
+
+        previous = {}
+        add_task(source, score_through_node[source])
+
+        while open_set:
+            current, score_through = pop_task()
+
+            if current == target:
+                return recover_path(previous, target), score_through
+
+            for neighbor in self._neighbors[current]:
+                updated_best_known = (
+                    score_best_known[current] + get_weight((current, neighbor))
+                )
+                if updated_best_known < score_best_known[neighbor]:
+                    previous[neighbor] = current
+                    score_best_known[neighbor] = updated_best_known
+                    score_through_node[neighbor] = (
+                        updated_best_known + heuristic(neighbor, target)
+                    )
+                    add_task(neighbor, score_through_node[neighbor])
+
+        raise ValueError(f'Unable to find a path from {source} to {target}')
 
 
 class DiGraph[T: Hashable]:
