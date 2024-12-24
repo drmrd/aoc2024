@@ -48,7 +48,7 @@ class Graph[T: Hashable]:
         if node in self._nodes:
             return
         self._nodes.append(node)
-        self._neighbors[node] = self._neighbors.get(node, set())
+        self._neighbors[node] = set()
 
         try:
             del self.__dict__['nodes']
@@ -62,6 +62,47 @@ class Graph[T: Hashable]:
 
         self._neighbors[edge[0]].add(edge[1])
         self._neighbors[edge[1]].add(edge[0])
+
+        self.neighbors.cache_clear()
+        self.shortest_path.cache_clear()
+
+        try:
+            del self.__dict__['edges']
+        except KeyError:
+            pass
+
+    def remove_node(self, node: Node[T]):
+        if node not in self._nodes:
+            return
+        self._nodes.remove(node)
+        edges_to_remove = [edge for edge in self._edges if node in edge]
+        for edge in edges_to_remove:
+            self._edges.remove(edge)
+
+        for neighbor in self._neighbors[node]:
+            self._neighbors[neighbor].remove(node)
+        del self._neighbors[node]
+        self.neighbors.cache_clear()
+        self.shortest_path.cache_clear()
+
+        for cached_property_name in ('nodes', 'edges'):
+            try:
+                del self.__dict__[cached_property_name]
+            except KeyError:
+                pass
+
+    def remove_edge(self, edge: Edge[T]):
+        to_remove = {edge}
+        if not self.is_directed:
+            to_remove.add(edge[::-1])
+        for edge_to_remove in to_remove:
+            try:
+                self._edges.remove(edge_to_remove)
+            except ValueError:
+                continue
+
+        self._neighbors[edge[0]].remove(edge[1])
+        self._neighbors[edge[1]].remove(edge[0])
 
         self.neighbors.cache_clear()
         self.shortest_path.cache_clear()
@@ -175,6 +216,41 @@ class DiGraph[T: Hashable]:
         self._edges.append(edge)
         for node in edge:
             self.add_node(node)
+
+        self.parents.cache_clear()
+        self.children.cache_clear()
+
+        try:
+            del self.__dict__['edges']
+        except KeyError:
+            pass
+
+    def remove_node(self, node: Node[T]):
+        if node not in self._nodes:
+            return
+        self._nodes.remove(node)
+        edges_to_remove = [edge for edge in self._edges if node in edge]
+        for edge in edges_to_remove:
+            self._edges.remove(edge)
+
+        self.parents.cache_clear()
+        self.children.cache_clear()
+
+        for cached_property_name in ('nodes', 'edges'):
+            try:
+                del self.__dict__[cached_property_name]
+            except KeyError:
+                pass
+
+    def remove_edge(self, edge: Edge[T]):
+        to_remove = {edge}
+        if not self.is_directed:
+            to_remove.add(edge[::-1])
+        for edge_to_remove in to_remove:
+            try:
+                self._edges.remove(edge_to_remove)
+            except ValueError:
+                continue
 
         self.parents.cache_clear()
         self.children.cache_clear()

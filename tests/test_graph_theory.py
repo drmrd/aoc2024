@@ -106,8 +106,6 @@ class TestCommonProperties:
 
         for new_edge in [(0, 2), (0, 4), (0, 6), (0, 8)]:
             G.add_edge(new_edge)
-            print(set(new_edge))
-            print(G.nodes)
             assert set(new_edge).issubset(G.nodes)
             assert new_edge in G.edges
 
@@ -124,6 +122,46 @@ class TestCommonProperties:
                 assert new_edge[1] in G.neighbors(new_edge[0])
 
         assert set(G.nodes) == set(range(9))
+
+    def test_can_remove_nodes_from_graph(self, graph_class):
+        initial_edges = {
+            (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6), (6, 7),
+            (0, 2), (0, 4), (0, 6), (0, 8)
+        }
+        G = graph_class(*initial_edges)
+
+        G.remove_node(0)
+        expected_remaining_nodes = set(range(1, 9))
+        expected_remaining_edges = {
+            (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7)
+        }
+        assert set(G.nodes) == expected_remaining_nodes
+        assert set(G.edges) == expected_remaining_edges
+
+        for node in expected_remaining_nodes:
+            if hasattr(G, 'parents'):
+                assert 0 not in G.parents(node)
+            if hasattr(G, 'children'):
+                assert 0 not in G.children(node)
+            if hasattr(G, 'neighbors'):
+                assert 0 not in G.neighbors(node)
+
+    def test_can_remove_edges_from_graph(self, graph_class):
+        remaining_edges = {
+            (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6), (6, 7),
+            (0, 2), (0, 4), (0, 6), (0, 8)
+        }
+        G = graph_class(*remaining_edges)
+        initial_nodes = set(G.nodes)
+        assert initial_nodes == set(range(9))
+        assert set(G.edges) == set(remaining_edges)
+
+        for deleted_edge in [(0, 2), (0, 4), (0, 6), (0, 8)]:
+            G.remove_edge(deleted_edge)
+            remaining_edges.remove(deleted_edge)
+            assert deleted_edge not in G.edges
+            assert set(G.edges) == remaining_edges
+            assert set(G.nodes) == initial_nodes
 
 
 class TestGraph:
