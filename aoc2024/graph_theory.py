@@ -43,6 +43,9 @@ class Graph[T: Hashable]:
     def nodes(self) -> Sequence[Node[T]]:
         return self._nodes
 
+    def add_node(self, node: T):
+        self._nodes.append(node)
+
     @cache
     def neighbors(self, node: Node) -> Set[T]:
         return self._neighbors[node]
@@ -132,6 +135,9 @@ class DiGraph[T: Hashable]:
     @cached_property
     def nodes(self) -> Sequence[T]:
         return self._nodes
+
+    def add_node(self, node: T):
+        self._nodes.append(node)
 
     @cache
     def parents(self, child: T) -> set[T]:
@@ -237,7 +243,7 @@ def _build_edge_weights_map[T: Hashable](
 
 def _build_node_list[T: Hashable](
         edges: Sequence[Edge[T]]
-) -> Sequence[Node[T]]:
+) -> list[Node[T]]:
     return list({
         *(source_node for source_node, _ in edges),
         *(target_node for _, target_node in edges)
