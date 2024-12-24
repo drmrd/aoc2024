@@ -251,3 +251,20 @@ class TestGraphConstructors:
         actual_grid = grid2d(*shape)
         assert set(actual_grid.nodes) == set(expected_grid.nodes)
         assert set(actual_grid.edges) == set(expected_grid.edges)
+
+    def test_day18_part1_example1(self):
+        pushed_bytes = '\n'.join([
+            '5,4', '4,2', '4,5', '3,0', '2,1', '6,3', '2,4', '1,5', '0,6',
+            '3,3', '2,6', '5,1', '1,2', '5,5', '2,5', '6,5', '1,4', '0,4',
+            '6,4', '1,1', '6,1', '1,0', '0,5', '1,6', '2,0'
+        ])
+
+        memory_space = grid2d(7, 7)
+        for pushed_byte in pushed_bytes.split('\n')[:12]:
+            grid_node = tuple(map(int, pushed_byte.split(',')))[::-1]
+            memory_space.remove_node(grid_node)
+
+        paths, distance = memory_space.shortest_path(
+            source=(0, 0), target=(6, 6), edge_weight=1
+        )
+        assert distance == 22
