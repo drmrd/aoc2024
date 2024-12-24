@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from aoc2024.graph_theory import DiGraph, Graph
+from aoc2024.graph_theory import DiGraph, Graph, grid2d
 
 
 @pytest.mark.parametrize(
@@ -197,3 +197,19 @@ class TestDiGraph:
         assert set(sorted_nodes) == set(DAG.nodes)
         for source, target in DAG.edges:
             assert sorted_nodes.index(source) < sorted_nodes.index(target)
+
+
+class TestGraphConstructors:
+    def test_grid2d_creates_2d_grid_of_given_shape(self):
+        shape = (2, 3)
+        expected_edges = {
+            ((0, 0), (0, 1)), ((0, 1), (0, 2)),
+            ((0, 0), (1, 0)), ((0, 1), (1, 1)), ((0, 2), (1, 2)),
+            ((1, 0), (1, 1)), ((1, 1), (1, 2))
+        }
+
+        expected_grid = Graph(*expected_edges)
+
+        actual_grid = grid2d(*shape)
+        assert set(actual_grid.nodes) == set(expected_grid.nodes)
+        assert set(actual_grid.edges) == set(expected_grid.edges)

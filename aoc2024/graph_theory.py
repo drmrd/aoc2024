@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import heapq
+import itertools
 import math
 from collections import deque, defaultdict
 from collections.abc import Hashable, Set, Sequence, Mapping
@@ -178,11 +179,10 @@ class DiGraph[T: Hashable]:
         self.parents.cache_clear()
         self.children.cache_clear()
 
-        for cached_attribute in ('edges'):
-            try:
-                del self.__dict__[cached_attribute]
-            except KeyError:
-                pass
+        try:
+            del self.__dict__['edges']
+        except KeyError:
+            pass
 
     @cache
     def parents(self, child: T) -> set[T]:
@@ -316,3 +316,18 @@ def _ancestor_sequences[T: Hashable](
             )
         )
     return ancestor_sequences
+
+
+def grid2d(*shape):
+    edges = set.union(*(
+        {
+            ((row, column), (row + 1, column)),
+            ((row, column), (row, column + 1))
+        }
+        for row, column in itertools.product(*map(range, shape))
+    ))
+    return Graph(*(
+        (node, neighbor)
+        for (node, neighbor) in edges
+        if neighbor[0] < shape[0] and neighbor[1] < shape[1]
+    ))
