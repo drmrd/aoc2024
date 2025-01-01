@@ -5,17 +5,17 @@ from aoc2024.maze import Maze
 def solve_part_one():
     return min(
         score
-        for _, score in Maze.from_map('\n'.join(utilities.input_lines(day=16)))
-                            .find_best_paths().values()
+        for _, score in Maze.from_map(
+            '\n'.join(utilities.input_lines(day=16)), oriented_nodes=True
+        ).find_best_paths().values()
     )
 
 
 def solve_part_two():
-    best_paths = (
-        Maze.from_map('\n'.join(utilities.input_lines(day=16)))
-            .find_best_paths()
-            .values()
-    )
+    best_paths = Maze.from_map(
+        '\n'.join(utilities.input_lines(day=16)),
+        oriented_nodes=True
+    ).find_best_paths().values()
     best_score = min(score for _, score in best_paths)
     best_path_positions = {
         position

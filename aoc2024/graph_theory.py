@@ -146,15 +146,8 @@ class Graph[T: Hashable]:
         previous = {source: None}
         heap = [(0, source)]
 
-        seen = set()
-        total_seen = 0
-        total_nodes = len(self.nodes)
         while heap:
             distance_to_node, node = heapq.heappop(heap)
-            seen.add(node)
-            if (new_total := len(seen)) > total_seen:
-                print('Looking at new node', node, f'(total seen {new_total} / {total_nodes}).')
-                total_seen = new_total
 
             for neighbor in self.neighbors(node):
                 current_distance = distance_from_source[neighbor]
