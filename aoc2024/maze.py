@@ -41,7 +41,7 @@ class Maze:
     def ends(self) -> set[Position] | set[OrientedPosition]:
         return self._ends
 
-    def find_best_paths(self):
+    def find_cheapest_paths(self):
         return {
             end: self._graph.shortest_path(self._start, end)
             for end in self._ends
