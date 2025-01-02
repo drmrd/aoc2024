@@ -37,7 +37,7 @@ def test_day16_part1_example1():
         unparsed_maze, oriented_nodes=True, start_direction=Direction.RIGHT
     )
 
-    best_paths = maze.find_best_paths()
+    best_paths = maze.find_cheapest_paths()
 
     assert min(score for _, score in best_paths.values()) == 7036
 
@@ -64,7 +64,7 @@ def test_day16_part2_example1():
         unparsed_maze, oriented_nodes=True, start_direction=Direction.RIGHT
     )
 
-    best_paths = maze.find_best_paths().values()
+    best_paths = maze.find_cheapest_paths().values()
     best_score = min(score for _, score in best_paths)
     best_path_positions = {
         position
