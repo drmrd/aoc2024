@@ -34,11 +34,11 @@ class Maze:
         self._ends = set(ends)
 
     @property
-    def start(self) -> tuple[int, int] | tuple[tuple[int, int], Direction]:
+    def start(self) -> Position | OrientedPosition:
         return self._start
 
     @property
-    def ends(self) -> set[tuple[int, int] | tuple[tuple[int, int], Direction]]:
+    def ends(self) -> set[Position] | set[OrientedPosition]:
         return self._ends
 
     def find_best_paths(self):
@@ -47,9 +47,7 @@ class Maze:
             for end in self._ends
         }
 
-    def to_graph(
-            self
-    ) -> Graph[tuple[int, int] | tuple[tuple[int, int], Direction]]:
+    def to_graph(self) -> Graph[Position] | Graph[OrientedPosition]:
         return deepcopy(self._graph)
 
     @classmethod
@@ -69,8 +67,8 @@ class Maze:
         }
         if oriented_nodes and start_direction is None:
             raise ValueError(
-                'Requested a maze with orientation-tracking (oriented_nodes is '
-                'True) without providing a starting point direction via '
+                'Requested a maze with orientation-tracking (oriented_nodes '
+                'is True) without providing a starting point direction via '
                 'start_direction.'
             )
         create_node = partial(Maze.create_node, oriented=oriented_nodes)
