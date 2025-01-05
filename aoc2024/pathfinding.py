@@ -40,6 +40,15 @@ class Direction(Enum):
     def principal_argument(self) -> float:
         return math.atan2(self.value.imag, self.value.real)
 
+    @lru_cache(16)
+    def to_caret(self) -> str:
+        return {
+            self.__class__.UP: '^',
+            self.__class__.DOWN: 'v',
+            self.__class__.LEFT: '<',
+            self.__class__.RIGHT: '>'
+        }[self]
+
     @classmethod
     @lru_cache(16)
     def from_caret(cls, caret: str) -> Direction:
