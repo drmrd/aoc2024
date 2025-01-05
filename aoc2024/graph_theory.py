@@ -23,7 +23,7 @@ class UndirectedGraph[T: Hashable]:
             default_edge_weight: Any = None
     ):
         self._edges = _build_edge_list(edges)
-        self._edge_weights = _build_edge_weights_map(
+        self._edge_attributes = _build_edge_attributes_map(
             edges, default_edge_weight, self.is_directed
         )
         self._nodes = _build_node_list(self._edges)
@@ -32,13 +32,16 @@ class UndirectedGraph[T: Hashable]:
             self._neighbors[source].add(target)
             self._neighbors[target].add(source)
 
+    def __getitem__(self, item: Node[T] | Edge[T]):
+        return self._edge_attributes[item]
+
     @property
     def is_directed(self) -> bool:
         return False
 
     @cached_property
     def edges(self) -> EdgeView[Edge[T]]:
-        return EdgeView(self._edges, self._edge_weights, self.is_directed)
+        return EdgeView(self._edges, self._edge_attributes, self.is_directed)
 
     @cached_property
     def nodes(self) -> Sequence[Node[T]]:
@@ -114,6 +117,9 @@ class UndirectedGraph[T: Hashable]:
             del self.__dict__['edges']
         except KeyError:
             pass
+
+    def to_directed(self) -> DiGraph[T]:
+        return DiGraph(*self.edges)
 
     @cache
     def neighbors(self, node: Node) -> Set[T]:
@@ -282,10 +288,13 @@ class DiGraph[T: Hashable]:
             default_edge_weight: Any = None
     ):
         self._edges = _build_edge_list(edges)
-        self._edge_weights = _build_edge_weights_map(
+        self._edge_attributes = _build_edge_attributes_map(
             edges, default_edge_weight, self.is_directed
         )
         self._nodes = _build_node_list(self._edges)
+
+    def __getitem__(self, item: Node[T] | Edge[T]):
+        return self._edge_attributes[item]
 
     @property
     def is_directed(self) -> bool:
@@ -293,7 +302,7 @@ class DiGraph[T: Hashable]:
 
     @cached_property
     def edges(self) -> EdgeView[Edge[T]]:
-        return EdgeView(self._edges, self._edge_weights, self.is_directed)
+        return EdgeView(self._edges, self._edge_attributes, self.is_directed)
 
     @cached_property
     def nodes(self) -> Sequence[T]:
@@ -439,24 +448,29 @@ def _build_edge_list[T: Hashable](
     ]
 
 
-def _build_edge_weights_map[T: Hashable](
+def _build_edge_attributes_map[T: Hashable](
         weighted_edges: tuple[Edge[T] | tuple[*Edge[T], Any], ...],
         default_edge_weight: Any,
         directed: bool
 ) -> Mapping[Edge[T], dict[str, Any]]:
-    edge_weights = {}
-    for source, target, *weight in weighted_edges:
-        if len(weight) > 1:
+    edge_attributes = {}
+    for source, target, *rest in weighted_edges:
+        if len(rest) > 1:
             raise ValueError(
-                'Providing multiple weights per edge in tuples passed to '
-                'the constructor is not supported.'
+                'Providing multiple weights or attribute dictionaries per '
+                'edge in tuples passed to the constructor is not supported.'
             )
-        edge_weights[source, target] = {
-            'weight': weight[0] if weight else default_edge_weight
-        }
+        try:
+            edge_attributes[source, target] = {
+                key: value for key, value in rest[0].items()
+            }
+        except (IndexError, AttributeError):
+            edge_attributes[source, target] = {
+                'weight': rest[0] if rest else default_edge_weight
+            }
         if not directed:
-            edge_weights[target, source] = edge_weights[source, target]
-    return edge_weights
+            edge_attributes[target, source] = edge_attributes[source, target]
+    return edge_attributes
 
 
 def _build_node_list[T: Hashable](

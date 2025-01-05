@@ -66,6 +66,21 @@ class TestCommonProperties:
             else:
                 assert edge_weight == expected_default_weight
 
+    def test_graph_can_be_constructed_with_edge_attributes(self, graph_class):
+        expected_edge_data = {
+            (0, 1): {'foo': 'bleep', 'bar': 'bloop'},
+            (1, 2): {'bar': 'blop', 'baz': 'zeep'}
+        }
+
+        G = graph_class(*(
+            (*edge, data) for edge, data in expected_edge_data.items()
+        ))
+
+        for edge, expected_data in expected_edge_data.items():
+            for key, value in expected_data.items():
+                print(G[edge])
+                assert G[edge][key] == value
+
     def test_graph_edge_directedness(self, graph_class):
         expected_edges = [
             (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6), (6, 7),
