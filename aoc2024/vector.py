@@ -85,3 +85,14 @@ class Vector[T]:
     def _raise_on_dimension_mismatch(self, other):
         if self.dimension != other.dimension:
             raise DimensionMismatch
+
+
+def taxicab[T](
+        point1: Vector | tuple[T, ...],
+        point2: Vector | tuple[T, ...]
+) -> float:
+    if len(point1) != len(point2):
+        raise DimensionMismatch
+    return sum(
+        abs(entry1 - entry2) for entry1, entry2 in zip(point1, point2)
+    )

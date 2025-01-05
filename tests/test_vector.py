@@ -1,7 +1,7 @@
 import hypothesis as hyp
 import hypothesis.strategies as st
 
-from aoc2024.vector import Vector
+from aoc2024.vector import Vector, taxicab
 
 
 @st.composite
@@ -74,3 +74,17 @@ def test_vector_modular_arithmetic(components1, components2, scalar):
 
     assert vector1 % vector2 == remainder
     assert vector1 % scalar == remainder_mod_scalar
+
+
+@hyp.given(
+    components1=components(dimension=5),
+    components2=components(dimension=5)
+)
+def test_taxicab_returns_l1_norm_of_difference(components1, components2):
+    vector1 = Vector(*components1)
+    vector2 = Vector(*components2)
+    assert taxicab(vector1, vector2) == sum(
+        abs(components1i - components2i)
+        for components1i, components2i in zip(components1, components2)
+    )
+    assert taxicab(vector1, vector2) == taxicab(components1, components2)

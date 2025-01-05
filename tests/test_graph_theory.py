@@ -2,12 +2,12 @@ import math
 
 import pytest
 
-from aoc2024.graph_theory import DiGraph, Graph, grid2d
+from aoc2024.graph_theory import DiGraph, UndirectedGraph, grid2d
 
 
 @pytest.mark.parametrize(
     'graph_class',
-    (Graph, DiGraph)
+    (UndirectedGraph, DiGraph)
 )
 class TestCommonProperties:
     def test_graph_can_be_constructed_from_edges(self, graph_class):
@@ -166,7 +166,7 @@ class TestCommonProperties:
 
 class TestGraph:
     def test_can_retrieve_neighbors_of_a_given_node(self):
-        G = Graph((0, 1), (1, 2), (2, 3), (3, 4), (3, 0), (0, 2), (0, 4))
+        G = UndirectedGraph((0, 1), (1, 2), (2, 3), (3, 4), (3, 0), (0, 2), (0, 4))
         expected_neighbors_map = {
             0: {1, 2, 3, 4}, 1: {0, 2}, 2: {0, 1, 3}, 3: {0, 2, 4}, 4: {0, 3}
         }
@@ -179,7 +179,7 @@ class TestGraph:
             )
 
     def test_can_compute_all_shortest_paths_from_a_source_node(self):
-        G = Graph(
+        G = UndirectedGraph(
             (0, 1, 5), (1, 2, 3), (2, 3, 7), (3, 4, 5),
             (0, 2, 7), (0, 4, 10),
             (10, 11, 1)
@@ -246,7 +246,7 @@ class TestGraphConstructors:
             ((1, 0), (1, 1)), ((1, 1), (1, 2))
         }
 
-        expected_grid = Graph(*expected_edges)
+        expected_grid = UndirectedGraph(*expected_edges)
 
         actual_grid = grid2d(*shape)
         assert set(actual_grid.nodes) == set(expected_grid.nodes)

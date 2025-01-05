@@ -7,9 +7,9 @@ from enum import Enum
 from functools import partial
 from typing import Union
 
-from aoc2024.graph_theory import Graph
+from aoc2024.graph_theory import UndirectedGraph
 from aoc2024.pathfinding import Direction
-from aoc2024.vector import Vector
+from aoc2024.vector import Vector, taxicab
 
 type Position = tuple[int, int]
 type OrientedPosition = tuple[Position, Direction]
@@ -25,7 +25,7 @@ class Component(str, Enum):
 class Maze:
     def __init__(
             self,
-            graph: Graph[OrientedPosition],
+            graph: UndirectedGraph[OrientedPosition],
             start: OrientedPosition,
             ends: Sequence[OrientedPosition]
     ):
@@ -47,7 +47,21 @@ class Maze:
             for end in self._ends
         }
 
-    def to_graph(self) -> Graph[Position] | Graph[OrientedPosition]:
+    def find_cheapest_paths_astar(self):
+        if isinstance(self.start[0], tuple):
+            def heuristic(node1, node2):
+                return taxicab(node1[0], node2[0])
+        else:
+            heuristic = taxicab
+        return {
+            end: self._graph.shortest_path_astar(
+                self._start, end,
+                heuristic=heuristic
+            )
+            for end in self._ends
+        }
+
+    def to_graph(self) -> UndirectedGraph[Position] | UndirectedGraph[OrientedPosition]:
         return deepcopy(self._graph)
 
     @classmethod
@@ -105,7 +119,7 @@ class Maze:
                         )
                     )
 
-        maze_graph = Graph(*edges)
+        maze_graph = UndirectedGraph(*edges)
         return cls(
             graph=maze_graph,
             start=start,

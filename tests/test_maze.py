@@ -42,6 +42,58 @@ def test_day16_part1_example1():
     assert min(score for _, score in best_paths.values()) == 7036
 
 
+def test_find_cheapest_paths_astar_oriented_day16_part1_example1():
+    unparsed_maze = '\n'.join([
+        '###############',
+        '#.......#....E#',
+        '#.#.###.#.###.#',
+        '#.....#.#...#.#',
+        '#.###.#####.#.#',
+        '#.#.#.......#.#',
+        '#.#.#####.###.#',
+        '#...........#.#',
+        '###.#.#####.#.#',
+        '#...#.....#.#.#',
+        '#.#.#.###.#.#.#',
+        '#.....#...#.#.#',
+        '#.###.#.#.#.#.#',
+        '#S..#.....#...#',
+        '###############'
+    ])
+    maze = Maze.from_map(
+        unparsed_maze, oriented_nodes=True, start_direction=Direction.RIGHT
+    )
+
+    best_paths = maze.find_cheapest_paths_astar()
+
+    assert min(score for _, score in best_paths.values()) == 7036
+
+
+def test_find_cheapest_paths_astar_unoriented_day16_part1_example1():
+    unparsed_maze = '\n'.join([
+        '###############',
+        '#.......#....E#',
+        '#.#.###.#.###.#',
+        '#.....#.#...#.#',
+        '#.###.#####.#.#',
+        '#.#.#.......#.#',
+        '#.#.#####.###.#',
+        '#...........#.#',
+        '###.#.#####.#.#',
+        '#...#.....#.#.#',
+        '#.#.#.###.#.#.#',
+        '#.....#...#.#.#',
+        '#.###.#.#.#.#.#',
+        '#S..#.....#...#',
+        '###############'
+    ])
+    maze = Maze.from_map(unparsed_maze, oriented_nodes=False)
+
+    best_paths = maze.find_cheapest_paths_astar()
+
+    assert min(score for _, score in best_paths.values()) == 28
+
+
 def test_day16_part2_example1():
     unparsed_maze = '\n'.join([
         '###############',

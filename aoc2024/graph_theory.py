@@ -16,7 +16,7 @@ class CycleError(ValueError):
     pass
 
 
-class Graph[T: Hashable]:
+class UndirectedGraph[T: Hashable]:
     def __init__(
             self,
             *edges: Edge[T] | tuple[*Edge[T], Any],
@@ -238,7 +238,7 @@ class Graph[T: Hashable]:
             heapq.heappush(open_set, entry)
 
         def remove_task(task):
-            'Mark an existing task as REMOVED.  Raise KeyError if not found.'
+            'Mark an existing task as REMOVED. Raise KeyError if not found.'
             entry = entry_finder.pop(task)
             entry[-1] = REMOVED
 
@@ -471,7 +471,6 @@ def _build_node_list[T: Hashable](
 def _ancestor_sequences[T: Hashable](
         node: Node[T],
         predecessor_set: Mapping[Node[T], set[Node[T]] | None],
-        # seen: set[Node[T]] | None = None,
         sequence_tails: list[list[Node[T]]] | None = None
 ) -> Sequence[Sequence[Node[T]]]:
     if sequence_tails is None:
@@ -499,7 +498,7 @@ def grid2d(*shape):
         }
         for row, column in itertools.product(*map(range, shape))
     ))
-    return Graph(*(
+    return UndirectedGraph(*(
         (node, neighbor)
         for (node, neighbor) in edges
         if neighbor[0] < shape[0] and neighbor[1] < shape[1]
