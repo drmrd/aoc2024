@@ -43,7 +43,7 @@ class Maze:
 
     def find_cheapest_paths(self):
         return {
-            end: self._graph.shortest_path(self._start, end)
+            end: self._graph.all_shortest_paths(self._start, end)
             for end in self._ends
         }
 

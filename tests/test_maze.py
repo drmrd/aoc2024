@@ -152,6 +152,6 @@ def test_day20_part1_example1():
     start = maze.start
     end = list(maze.ends)[0]
 
-    best_paths = grid.shortest_path(start, end, with_distance=True, edge_weight=1)
+    best_paths = grid.all_shortest_paths(start, end, with_distance=True, edge_weight=1)
 
     assert best_paths[1] == 84

@@ -5,6 +5,7 @@ import itertools
 import math
 from collections import deque, defaultdict
 from collections.abc import Hashable, Set, Sequence, Mapping, Callable
+from copy import deepcopy
 from functools import cached_property, cache
 from typing import Any, Union
 
@@ -77,7 +78,7 @@ class UndirectedGraph[T: Hashable]:
         self.in_edges.cache_clear()
         self.out_edges.cache_clear()
         self.neighbors.cache_clear()
-        self.shortest_path.cache_clear()
+        self.all_shortest_paths.cache_clear()
         self.shortest_path_astar.cache_clear()
 
         try:
@@ -99,7 +100,7 @@ class UndirectedGraph[T: Hashable]:
         self.in_edges.cache_clear()
         self.out_edges.cache_clear()
         self.neighbors.cache_clear()
-        self.shortest_path.cache_clear()
+        self.all_shortest_paths.cache_clear()
         self.shortest_path_astar.cache_clear()
 
         for cached_property_name in ('nodes', 'edges'):
@@ -124,7 +125,7 @@ class UndirectedGraph[T: Hashable]:
         self.in_edges.cache_clear()
         self.out_edges.cache_clear()
         self.neighbors.cache_clear()
-        self.shortest_path.cache_clear()
+        self.all_shortest_paths.cache_clear()
         self.shortest_path_astar.cache_clear()
 
         try:
@@ -133,14 +134,22 @@ class UndirectedGraph[T: Hashable]:
             pass
 
     def to_directed(self) -> DiGraph[T]:
-        return DiGraph(*self.edges)
+        return DiGraph(
+            *itertools.chain.from_iterable(
+                (
+                    (source, target, self[source, target]),
+                    (target, source, self[source, target])
+                )
+                for source, target in self.edges
+            )
+        )
 
     @cache
     def neighbors(self, node: Node) -> Set[T]:
         return self._neighbors[node]
 
     @cache
-    def shortest_path(
+    def all_shortest_paths(
             self,
             source: Node,
             target: Node | None = None,
@@ -152,61 +161,13 @@ class UndirectedGraph[T: Hashable]:
             Mapping[Node, Sequence[Node]],
             Mapping[Node, tuple[Sequence[Node], float]]
     ]:
-        if isinstance(edge_weight, str):
-            def get_weight(edge):
-                return self.edges[edge][edge_weight]
-        else:
-            def get_weight(edge):
-                return edge_weight
-
-        distance_from_source: defaultdict[Node, float] = defaultdict(
-            lambda: math.inf
+        return all_shortest_paths(
+            graph=self,
+            source=source,
+            target=target,
+            with_distance=with_distance,
+            edge_weight=edge_weight
         )
-        distance_from_source[source] = 0
-        previous = {source: None}
-        heap = [(0, source)]
-
-        while heap:
-            distance_to_node, node = heapq.heappop(heap)
-
-            for neighbor in self.neighbors(node):
-                current_distance = distance_from_source[neighbor]
-                updated_distance = (
-                    distance_to_node + get_weight((node, neighbor))
-                )
-                if updated_distance > current_distance:
-                    continue
-                elif updated_distance < current_distance:
-                    distance_from_source[neighbor] = updated_distance
-                    previous[neighbor] = {node}
-                else:
-                    previous[neighbor].add(node)
-                heapq.heappush(
-                    heap, (updated_distance, neighbor)
-                )
-
-        def prepare_paths(
-                target: Node,
-                previous: Mapping[Node, set[Node]],
-                with_distance: bool
-        ):
-            if target in previous:
-                paths = _ancestor_sequences(target, previous)
-            else:
-                paths = None
-
-            if with_distance:
-                return paths, distance_from_source.get(target, math.inf)
-            else:
-                return paths
-
-        if target is not None:
-            return prepare_paths(target, previous, with_distance)
-        else:
-            return {
-                target: prepare_paths(target, previous, with_distance)
-                for target in self.nodes
-            }
 
     @cache
     def shortest_path_astar(
@@ -418,6 +379,27 @@ class DiGraph[T: Hashable]:
             if (parent, child) in self._edges
         }
 
+    @cache
+    def all_shortest_paths(
+            self,
+            source: Node,
+            target: Node | None = None,
+            with_distance: bool = True,
+            edge_weight = 'weight'
+    ) -> Union[
+            Sequence[Node],
+            tuple[Sequence[Node], float],
+            Mapping[Node, Sequence[Node]],
+            Mapping[Node, tuple[Sequence[Node], float]]
+    ]:
+        return all_shortest_paths(
+            graph=self,
+            source=source,
+            target=target,
+            with_distance=with_distance,
+            edge_weight=edge_weight
+        )
+
     def sort_topologically(self) -> list[T]:
         sorted_nodes: deque[T] = deque()
         orphans = {node for node in self.nodes if not self.parents(node)}
@@ -518,26 +500,118 @@ def _build_node_list[T: Hashable](
     })
 
 
-def _ancestor_sequences[T: Hashable](
+@cache
+def all_shortest_paths[T: Hashable](
+        graph: UndirectedGraph[T] | DiGraph[T],
+        source: Node,
+        target: Node | None = None,
+        with_distance: bool = True,
+        edge_weight = 'weight'
+) -> Union[
+        Sequence[Node],
+        tuple[Sequence[Node], float],
+        Mapping[Node, Sequence[Node]],
+        Mapping[Node, tuple[Sequence[Node], float]]
+]:
+    if not graph.is_directed:
+        graph = graph.to_directed()
+
+    if isinstance(edge_weight, str):
+        def get_weight(edge):
+            return graph.edges[edge][edge_weight]
+    else:
+        def get_weight(edge):
+            return edge_weight
+
+    distance_from_source: defaultdict[Node, float] = defaultdict(
+        lambda: math.inf
+    )
+    distance_from_source[source] = 0
+    previous = {source: None}
+    heap = [(0, source)]
+
+    while heap:
+        distance_to_node, node = heapq.heappop(heap)
+
+        for out_edge in graph.out_edges(node):
+            _, neighbor = out_edge
+            current_distance = distance_from_source[neighbor]
+            updated_distance = (
+                distance_to_node + get_weight((node, neighbor))
+            )
+            if updated_distance > current_distance:
+                continue
+            elif updated_distance < current_distance:
+                distance_from_source[neighbor] = updated_distance
+                previous[neighbor] = {node}
+            else:
+                previous[neighbor].add(node)
+            heapq.heappush(
+                heap, (updated_distance, neighbor)
+            )
+
+    def prepare_paths(
+            target: Node,
+            previous: Mapping[Node, set[Node]],
+            with_distance: bool
+    ):
+        if target in previous:
+            paths = _recover_all_paths(target, previous)
+        else:
+            paths = []
+
+        if with_distance:
+            return paths, distance_from_source.get(target, math.inf)
+        else:
+            return paths
+
+    if target is not None:
+        return prepare_paths(target, previous, with_distance)
+    else:
+        return {
+            target: prepare_paths(target, previous, with_distance)
+            for target in graph.nodes
+        }
+
+
+def _recover_all_paths[T: Hashable](
         node: Node[T],
         predecessor_set: Mapping[Node[T], set[Node[T]] | None],
-        sequence_tails: list[list[Node[T]]] | None = None
+        path_tails: Sequence[Sequence[Node[T]]] | None = None
 ) -> Sequence[Sequence[Node[T]]]:
-    if sequence_tails is None:
-        sequence_tails = [[node]]
+    if path_tails is None:
+        path_tails = deque([deque([node])])
+
+    return [
+        list(path)
+        for path in _recover_all_paths_recurrence(
+            node, predecessor_set, path_tails
+        )
+    ]
+
+
+def _recover_all_paths_recurrence[T: Hashable](
+        node: Node[T],
+        predecessor_set: Mapping[Node[T], set[Node[T]] | None],
+        path_tails: deque[deque[Node[T]]] | None = None
+) -> deque[deque[Node[T]]]:
     predecessors = predecessor_set[node]
     if predecessors is None:
-        return sequence_tails
-    ancestor_sequences = []
+        return path_tails
+
+    recovered_paths = deque()
     for predecessor in predecessors:
-        ancestor_sequences.extend(
-            _ancestor_sequences(
+        predecessor_path_tails = deepcopy(path_tails)
+        for tail in predecessor_path_tails:
+            tail.appendleft(predecessor)
+        recovered_paths.extend(
+            _recover_all_paths(
                 predecessor,
                 predecessor_set,
-                [[predecessor, *tail] for tail in sequence_tails]
+                predecessor_path_tails
             )
         )
-    return ancestor_sequences
+    return recovered_paths
 
 
 def grid2d(*shape):

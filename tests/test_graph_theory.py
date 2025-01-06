@@ -211,6 +211,27 @@ class TestCommonProperties:
             assert set(G.edges) == remaining_edges
             assert set(G.nodes) == initial_nodes
 
+    def test_can_compute_all_shortest_paths_from_a_source_node(self, graph_class):
+        G = graph_class(
+            (0, 1, 5), (1, 2, 3), (2, 3, 7), (3, 4, 5),
+            (0, 2, 7), (0, 4, 10),
+            (10, 11, 1)
+        )
+
+        expected_distance = {
+            0: ([[0]], 0),
+            1: ([[0, 1]], 5),
+            2: ([[0, 2]], 7),
+            3: ([[0, 2, 3]], 14),
+            4: ([[0, 4]], 10),
+            10: ([], math.inf),
+            11: ([], math.inf)
+        }
+        assert G.all_shortest_paths(0) == expected_distance
+
+        for target in G.nodes:
+            assert G.all_shortest_paths(0, target) == expected_distance[target]
+
 
 class TestGraph:
     def test_can_retrieve_neighbors_of_a_given_node(self):
@@ -239,13 +260,13 @@ class TestGraph:
             2: ([[0, 2]], 7),
             3: ([[0, 2, 3]], 14),
             4: ([[0, 4]], 10),
-            10: (None, math.inf),
-            11: (None, math.inf)
+            10: ([], math.inf),
+            11: ([], math.inf)
         }
-        assert G.shortest_path(0) == expected_distance
+        assert G.all_shortest_paths(0) == expected_distance
 
         for target in G.nodes:
-            assert G.shortest_path(0, target) == expected_distance[target]
+            assert G.all_shortest_paths(0, target) == expected_distance[target]
 
 
 class TestDiGraph:
