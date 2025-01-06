@@ -43,6 +43,14 @@ class UndirectedGraph[T: Hashable]:
     def edges(self) -> EdgeView[Edge[T]]:
         return EdgeView(self._edges, self._edge_attributes, self.is_directed)
 
+    @cache
+    def in_edges(self, node: Node[T]) -> set[Edge[T]]:
+        return {edge for edge in self.edges if node in edge}
+
+    @cache
+    def out_edges(self, node: Node[T]) -> set[Edge[T]]:
+        return self.in_edges(node)
+
     @cached_property
     def nodes(self) -> Sequence[Node[T]]:
         return self._nodes
@@ -66,6 +74,8 @@ class UndirectedGraph[T: Hashable]:
         self._neighbors[edge[0]].add(edge[1])
         self._neighbors[edge[1]].add(edge[0])
 
+        self.in_edges.cache_clear()
+        self.out_edges.cache_clear()
         self.neighbors.cache_clear()
         self.shortest_path.cache_clear()
         self.shortest_path_astar.cache_clear()
@@ -86,6 +96,8 @@ class UndirectedGraph[T: Hashable]:
         for neighbor in self._neighbors[node]:
             self._neighbors[neighbor].remove(node)
         del self._neighbors[node]
+        self.in_edges.cache_clear()
+        self.out_edges.cache_clear()
         self.neighbors.cache_clear()
         self.shortest_path.cache_clear()
         self.shortest_path_astar.cache_clear()
@@ -109,6 +121,8 @@ class UndirectedGraph[T: Hashable]:
         self._neighbors[edge[0]].remove(edge[1])
         self._neighbors[edge[1]].remove(edge[0])
 
+        self.in_edges.cache_clear()
+        self.out_edges.cache_clear()
         self.neighbors.cache_clear()
         self.shortest_path.cache_clear()
         self.shortest_path_astar.cache_clear()
@@ -304,6 +318,22 @@ class DiGraph[T: Hashable]:
     def edges(self) -> EdgeView[Edge[T]]:
         return EdgeView(self._edges, self._edge_attributes, self.is_directed)
 
+    @cache
+    def in_edges(self, node: Node[T]) -> set[Edge[T]]:
+        return {
+            (source, target)
+            for (source, target) in self.edges
+            if target == node
+        }
+
+    @cache
+    def out_edges(self, node: Node[T]) -> set[Edge[T]]:
+        return {
+            (source, target)
+            for (source, target) in self.edges
+            if source == node
+        }
+
     @cached_property
     def nodes(self) -> Sequence[T]:
         return self._nodes
@@ -323,6 +353,8 @@ class DiGraph[T: Hashable]:
         for node in edge:
             self.add_node(node)
 
+        self.in_edges.cache_clear()
+        self.out_edges.cache_clear()
         self.parents.cache_clear()
         self.children.cache_clear()
 
@@ -339,6 +371,8 @@ class DiGraph[T: Hashable]:
         for edge in edges_to_remove:
             self._edges.remove(edge)
 
+        self.in_edges.cache_clear()
+        self.out_edges.cache_clear()
         self.parents.cache_clear()
         self.children.cache_clear()
 
@@ -358,6 +392,8 @@ class DiGraph[T: Hashable]:
             except ValueError:
                 continue
 
+        self.in_edges.cache_clear()
+        self.out_edges.cache_clear()
         self.parents.cache_clear()
         self.children.cache_clear()
 

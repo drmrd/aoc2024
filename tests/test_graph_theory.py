@@ -98,6 +98,39 @@ class TestCommonProperties:
                 f'G.edges, the reversed edge {(target, source)} is not.'
             )
 
+    def test_nodes_have_in_and_out_edges(self, graph_class):
+        G = graph_class(
+            (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6),
+            (0, 0), (2, 1), (2, 5), (3, 2), (3, 5)
+        )
+        directed_in_edges = {
+            0: {(0, 0), (3, 0)},
+            1: {(0, 1), (2, 1)},
+            2: {(1, 2), (3, 2)},
+            3: {(2, 3)},
+            4: {(3, 4)},
+            5: {(2, 5), (3, 5), (4, 5)},
+            6: {(5, 6)}
+        }
+        directed_out_edges = {
+            0: {(0, 0), (0, 1)},
+            1: {(1, 2)},
+            2: {(2, 1), (2, 3), (2, 5)},
+            3: {(3, 0), (3, 2), (3, 4), (3, 5)},
+            4: {(4, 5)},
+            5: {(5, 6)},
+            6: set()
+        }
+        for node in G.nodes:
+            if G.is_directed:
+                assert G.in_edges(node) == directed_in_edges[node]
+                assert G.out_edges(node) == directed_out_edges[node]
+            else:
+                assert G.in_edges(node) == G.out_edges(node)
+                assert G.in_edges(node) == (
+                    directed_in_edges[node] | directed_out_edges[node]
+                )
+
     def test_can_add_nodes_to_graph(self, graph_class):
         expected_edges = [
             (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6), (6, 7)
