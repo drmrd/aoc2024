@@ -3,13 +3,10 @@ from __future__ import annotations
 import itertools
 import math
 import re
-from collections import deque
 from enum import Enum
 from functools import cache, cached_property
 
 from aoc2024 import utilities
-from aoc2024.graph_theory import DiGraph
-from aoc2024.pathfinding import Direction
 from aoc2024.vector import Vector
 
 
@@ -35,63 +32,10 @@ class Keypad(Enum):
         raise ValueError(f'Key {key} not found in keypad {self.name}.')
 
     @cache
-    def in_same_row(self, key1: str, key2: str) -> bool:
-        return self.location(key1)[0] == self.location(key2)[0]
-
-    @cache
-    def in_same_column(self, key1: str, key2: str) -> bool:
-        return self.location(key1)[1] == self.location(key2)[1]
-
-    @cached_property
-    def key_count(self) -> int:
-        return sum(key is not None for row in self.value for key in row)
-
-    @classmethod
-    def total_keys(cls):
-        return sum(keypad.key_count for keypad in cls)
-
-
-class KeypadController:
-    def __init__(self, keypad: Keypad):
-        self._keypad = keypad
-        keypad_rows = keypad.value
-        if len({len(row) for row in keypad_rows}) != 1:
-            raise ValueError(
-                'All layout rows must be the same length. Use a single space '
-                'to represent keyless locations.'
-            )
-        keypad_shape = len(keypad_rows), len(keypad_rows[0])
-
-        physical_transitions = deque()
-        key_position = {}
-        for row_index, column_index in itertools.product(
-                *map(range, keypad_shape)
-        ):
-            key_value = keypad_rows[row_index][column_index]
-            if keypad_rows[row_index][column_index] == ' ':
-                continue
-            key = Vector(row_index, column_index)
-            key_position[key_value] = tuple(key)
-            for direction in Direction:
-                neighbor = key + direction.grid_vector
-                if (
-                        min(neighbor) >= 0
-                        and neighbor[0] < keypad_shape[0]
-                        and neighbor[1] < keypad_shape[1]
-                        and keypad_rows[neighbor[0]][neighbor[1]] is not None
-                ):
-                    physical_transitions.append(
-                        (tuple(key), tuple(neighbor), {'direction': direction})
-                    )
-
-        self._key_graph = DiGraph(*physical_transitions)
-        self._key_position = key_position
-
-    @cache
     def shortest_path(self, start, stop):
-        start_row, start_col = start_loc = self._keypad.location(start)
-        stop_row, stop_col = stop_loc = self._keypad.location(stop)
-        blank_row, blank_col = self._keypad.location(None)
+        start_row, start_col = start_loc = self.location(start)
+        stop_row, stop_col = stop_loc = self.location(stop)
+        blank_row, blank_col = self.location(None)
         row_offset, col_offset = stop_loc - start_loc
 
         horizontal_part = abs(col_offset) * ('<' if col_offset < 0 else '>')
@@ -117,8 +61,16 @@ class KeypadController:
             return f'{vertical_part}{horizontal_part}'
 
     @cached_property
-    def keys(self) -> set[str]:
-        return set(self._key_position)
+    def keys(self) -> list[str]:
+        return [key for row in self.value for key in row if key is not None]
+
+    @cached_property
+    def key_count(self) -> int:
+        return sum(key is not None for row in self.value for key in row)
+
+    @classmethod
+    def total_keys(cls):
+        return sum(keypad.key_count for keypad in cls)
 
 
 def sign(x: float) -> float:
@@ -127,11 +79,10 @@ def sign(x: float) -> float:
 
 @cache
 def all_keypad_paths(keypad: Keypad) -> dict[tuple[str, str], str]:
-    controller = KeypadController(keypad)
     return {
-        (key1, key2): f'{controller.shortest_path(key1, key2)}A'
-        for key1 in controller.keys
-        for key2 in controller.keys
+        (key1, key2): f'{keypad.shortest_path(key1, key2)}A'
+        for key1 in keypad.keys
+        for key2 in keypad.keys
         if key1 is not None and key2 is not None
     }
 
