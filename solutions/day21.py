@@ -4,7 +4,8 @@ import itertools
 import math
 import re
 from collections import deque
-from functools import cache
+from enum import Enum
+from functools import cache, cached_property
 
 from aoc2024 import utilities
 from aoc2024.graph_theory import DiGraph
@@ -12,21 +13,62 @@ from aoc2024.pathfinding import Direction
 from aoc2024.vector import Vector
 
 
-class Keypad:
-    def __init__(self, layout, start_position='A'):
-        layout_rows = layout.split('\n')
-        if len({len(row) for row in layout_rows}) != 1:
+class Keypad(Enum):
+    NUM = [
+        ['7', '8', '9'],
+        ['4', '5', '6'],
+        ['1', '2', '3'],
+        [None, '0', 'A']
+    ]
+    DIR = [
+        [None, '^', 'A'],
+        ['<', 'v', '>']
+    ]
+
+    @cache
+    def location(self, key: str | None) -> Vector[int]:
+        for row_index, row in enumerate(self.value):
+            try:
+                return Vector(row_index, row.index(key))
+            except ValueError:
+                continue
+        raise ValueError(f'Key {key} not found in keypad {self.name}.')
+
+    @cache
+    def in_same_row(self, key1: str, key2: str) -> bool:
+        return self.location(key1)[0] == self.location(key2)[0]
+
+    @cache
+    def in_same_column(self, key1: str, key2: str) -> bool:
+        return self.location(key1)[1] == self.location(key2)[1]
+
+    @cached_property
+    def key_count(self) -> int:
+        return sum(key is not None for row in self.value for key in row)
+
+    @classmethod
+    def total_keys(cls):
+        return sum(keypad.key_count for keypad in cls)
+
+
+class KeypadController:
+    def __init__(self, keypad: Keypad):
+        self._keypad = keypad
+        keypad_rows = keypad.value
+        if len({len(row) for row in keypad_rows}) != 1:
             raise ValueError(
                 'All layout rows must be the same length. Use a single space '
                 'to represent keyless locations.'
             )
-        layout_shape = len(layout_rows), len(layout_rows[0])
+        keypad_shape = len(keypad_rows), len(keypad_rows[0])
 
         physical_transitions = deque()
         key_position = {}
-        for row_index, column_index in itertools.product(*map(range, layout_shape)):
-            key_value = layout_rows[row_index][column_index]
-            if layout_rows[row_index][column_index] == ' ':
+        for row_index, column_index in itertools.product(
+                *map(range, keypad_shape)
+        ):
+            key_value = keypad_rows[row_index][column_index]
+            if keypad_rows[row_index][column_index] == ' ':
                 continue
             key = Vector(row_index, column_index)
             key_position[key_value] = tuple(key)
@@ -34,164 +76,112 @@ class Keypad:
                 neighbor = key + direction.grid_vector
                 if (
                         min(neighbor) >= 0
-                        and neighbor[0] < layout_shape[0]
-                        and neighbor[1] < layout_shape[1]
-                        and (
-                            value := layout_rows[neighbor[0]][neighbor[1]]
-                        ) != ' '
+                        and neighbor[0] < keypad_shape[0]
+                        and neighbor[1] < keypad_shape[1]
+                        and keypad_rows[neighbor[0]][neighbor[1]] is not None
                 ):
                     physical_transitions.append(
                         (tuple(key), tuple(neighbor), {'direction': direction})
                     )
 
-        for index, row in enumerate(layout_rows):
-            try:
-                self._current_position = index, row.index(start_position)
-                break
-            except ValueError:
-                continue
-        else:
-            raise ValueError(
-                f'No key with value "{start_position}" found in layout.'
-            )
         self._key_graph = DiGraph(*physical_transitions)
         self._key_position = key_position
 
-    def shortest_paths(self, start, stop):
-        paths, length = self._key_graph.all_shortest_paths(
-            self._key_position[start],
-            self._key_position[stop],
-            edge_weight=1
-        )
-        if not paths:
-            raise ValueError(f'No paths found from "{start}" to "{stop}".')
-        return {
-            'position_paths': paths,
-            'movement_paths': [
-                [
-                    self._key_graph[edge]['direction'].to_caret()
-                    for edge in itertools.pairwise(path)
-                ]
-                for path in paths
-            ],
-            'length': length
-        }
-
     @cache
-    def to_position(self, key: str) -> tuple[int, int]:
-        return self._key_position[key]  # type: ignore
+    def shortest_path(self, start, stop):
+        start_row, start_col = start_loc = self._keypad.location(start)
+        stop_row, stop_col = stop_loc = self._keypad.location(stop)
+        blank_row, blank_col = self._keypad.location(None)
+        row_offset, col_offset = stop_loc - start_loc
 
-    @cache
-    def to_key(self, position: tuple[int, int] | Vector[int]) -> tuple[int, int]:
-        position = tuple(position)
-        for key, key_position in self._key_position.items():
-            if key_position == position:
-                return key
-        raise ValueError(f'No key found at position {position}')
+        horizontal_part = abs(col_offset) * ('<' if col_offset < 0 else '>')
+        vertical_part = abs(row_offset) * ('^' if row_offset < 0 else 'v')
 
-    def path_to_key_presses(self, path: str) -> str:
-        current_position = self._key_position['A']
-        key_presses = deque()
-        for action in path:
-            if action == 'A':
-                key_presses.append(self.to_key(current_position))
-                continue
-            current_position = tuple(
-                Vector(*current_position) + Direction.from_caret(action).grid_vector
+        # This is logic can be simplified for the specific keypads in Day 21,
+        # but I decided to leave it more complete here for fun.
+        can_move_left_initially = (
+            blank_col < stop_col
+            or
+            (
+                blank_col == stop_col
+                and sign(blank_row - start_row) == sign(blank_row - stop_row)
             )
-        return ''.join(key_presses)
-
-
-def door_keypad_sequence(door_code: str | list[str]) -> list[str]:
-    door_keypad = Keypad(
-        '\n'.join([
-            '789',
-            '456',
-            '123',
-            ' 0A'
-        ])
-    )
-    if isinstance(door_code, str):
-        door_code = [door_code]
-    return keypad_controller_movement_paths(door_keypad, door_code)
-
-
-def directional_keypad_sequence(directions: str | list[str]) -> list[str]:
-    directional_keypad = Keypad(
-        '\n'.join([
-            ' ^A',
-            '<v>'
-        ])
-    )
-    if isinstance(directions, str):
-        directions = [directions]
-    return keypad_controller_movement_paths(directional_keypad, directions)
-
-
-def keypad_controller_movement_paths(keypad, keypad_button_sequences: list[str]) -> list[str]:
-    movement_paths = deque()
-    for keypad_button_sequence in keypad_button_sequences:
-        interkey_paths = deque()
-        source = 'A'
-        for target in keypad_button_sequence:
-            paths_from_source_to_target = keypad.shortest_paths(
-                source, target
-            )['movement_paths']
-            interkey_paths.append(paths_from_source_to_target)
-            source = target
-        movement_paths.extend(
-            ''.join(f'{''.join(key_pair_path)}A' for key_pair_path in interkey_path)
-            for interkey_path in itertools.product(*interkey_paths)
+            or (blank_col > stop_col and blank_row != start_row)
         )
-    return list(movement_paths)
+        if (
+                (can_move_left_initially and col_offset < 0)
+                or start_col == blank_col
+        ):
+            return f'{horizontal_part}{vertical_part}'
+        else:
+            return f'{vertical_part}{horizontal_part}'
+
+    @cached_property
+    def keys(self) -> set[str]:
+        return set(self._key_position)
 
 
-def find_minimal_robot_robot_robot_control_sequences(
-        door_code: str
-) -> str:
-    door_keypad_robot_sequences = door_keypad_sequence(door_code)
-    minimal_door_keypad_sequence_length = len(
-        shortest_sequence(door_keypad_robot_sequences)
+def sign(x: float) -> float:
+    return math.copysign(1, x) if x else 0
+
+
+@cache
+def all_keypad_paths(keypad: Keypad) -> dict[tuple[str, str], str]:
+    controller = KeypadController(keypad)
+    return {
+        (key1, key2): f'{controller.shortest_path(key1, key2)}A'
+        for key1 in controller.keys
+        for key2 in controller.keys
+        if key1 is not None and key2 is not None
+    }
+
+
+@cache
+def chained_controller_sequence_length(
+        key_sequence: str,
+        remaining_dirpads: int,
+        at_numpad: bool = True
+) -> int:
+    if remaining_dirpads == 0:
+        return len(key_sequence)
+    if at_numpad:
+        keypad_paths = all_keypad_paths(Keypad.NUM)
+    else:
+        keypad_paths = all_keypad_paths(Keypad.DIR)
+
+    key_sequence_pairs = itertools.chain(
+        [('A', key_sequence[0])],
+        itertools.pairwise(key_sequence)
     )
-    first_directional_keypad_robot_sequences = directional_keypad_sequence([
-        sequence
-        for sequence in door_keypad_robot_sequences
-        if len(sequence) == minimal_door_keypad_sequence_length
-    ])
-    minimal_first_directional_keypad_robot_sequence_length = len(
-        shortest_sequence(first_directional_keypad_robot_sequences)
+    return sum(
+        chained_controller_sequence_length(
+            key_sequence=keypad_paths[previous_key, current_key],
+            remaining_dirpads=remaining_dirpads - (not at_numpad),
+            at_numpad=False
+        )
+        for previous_key, current_key in key_sequence_pairs
     )
-    second_directional_keypad_robot_sequences = directional_keypad_sequence([
-        sequence
-        for sequence in first_directional_keypad_robot_sequences
-        if len(sequence) == minimal_first_directional_keypad_robot_sequence_length
-    ])
-    return shortest_sequence(second_directional_keypad_robot_sequences)
 
 
-def shortest_sequence(sequences: list[str]) -> str:
-    current_minimal_sequence = None
-    current_minimal_length = math.inf
-    for sequence in sequences:
-        if (sequence_length := len(sequence)) < current_minimal_length:
-            current_minimal_sequence = sequence
-            current_minimal_length = sequence_length
-    return current_minimal_sequence
-
-
-def complexity(code: str) -> int:
+def complexity(code: str, directional_robots: int) -> int:
     return (
         int(re.sub(r'^(\d+).*$', r'\1', code))
-        * len(find_minimal_robot_robot_robot_control_sequences(code))
+        * chained_controller_sequence_length(code, directional_robots)
     )
 
 
 def solve_part_one():
-    return sum(complexity(code) for code in utilities.input_lines(day=21))
+    return sum(
+        complexity(code, directional_robots=2)
+        for code in utilities.input_lines(day=21)
+    )
 
 
 def solve_part_two():
-    return 'TBD'
+    return sum(
+        complexity(code, directional_robots=25)
+        for code in utilities.input_lines(day=21)
+    )
 
 
 if __name__ == '__main__':
