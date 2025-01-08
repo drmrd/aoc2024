@@ -7,7 +7,7 @@ from collections import deque, defaultdict
 from collections.abc import Hashable, Set, Sequence, Mapping, Callable
 from copy import deepcopy
 from functools import cached_property, cache
-from typing import Any, Union
+from typing import Any, Union, Generator
 
 type Node[T: Hashable] = T
 type Edge[T: Hashable] = tuple[T, T]
@@ -78,6 +78,7 @@ class UndirectedGraph[T: Hashable]:
         self.in_edges.cache_clear()
         self.out_edges.cache_clear()
         self.neighbors.cache_clear()
+        self.cliques.cache_clear()
         self.all_shortest_paths.cache_clear()
         self.shortest_path_astar.cache_clear()
 
@@ -100,6 +101,7 @@ class UndirectedGraph[T: Hashable]:
         self.in_edges.cache_clear()
         self.out_edges.cache_clear()
         self.neighbors.cache_clear()
+        self.cliques.cache_clear()
         self.all_shortest_paths.cache_clear()
         self.shortest_path_astar.cache_clear()
 
@@ -125,6 +127,7 @@ class UndirectedGraph[T: Hashable]:
         self.in_edges.cache_clear()
         self.out_edges.cache_clear()
         self.neighbors.cache_clear()
+        self.cliques.cache_clear()
         self.all_shortest_paths.cache_clear()
         self.shortest_path_astar.cache_clear()
 
@@ -147,6 +150,10 @@ class UndirectedGraph[T: Hashable]:
     @cache
     def neighbors(self, node: Node) -> Set[T]:
         return self._neighbors[node]
+
+    @cache
+    def cliques(self) -> Sequence[set[Node]]:
+        return list(_ibk_gpx(self, set(), set(self.nodes), set()))
 
     @cache
     def all_shortest_paths(
@@ -498,6 +505,34 @@ def _build_node_list[T: Hashable](
         *(source_node for source_node, _ in edges),
         *(target_node for _, target_node in edges)
     })
+
+
+def _ibk_gpx[T: Hashable](
+        graph: UndirectedGraph[T],
+        clique: set,
+        prospective_nodes: set,
+        exclusions: set
+) -> Generator[set[T]]:
+    potential_pivots = prospective_nodes | exclusions
+    if not potential_pivots:
+        yield clique
+        return
+    pivot_node = potential_pivots.pop()
+    pivot_neighbors = prospective_nodes & graph.neighbors(pivot_node)
+    for node in potential_pivots:
+        prospective_neighbors = prospective_nodes & graph.neighbors(node)
+        if len(prospective_neighbors) > len(pivot_neighbors):
+            pivot_neighbors = prospective_neighbors
+
+    for node in prospective_nodes - pivot_neighbors:
+        prospective_nodes.remove(node)
+        yield from _ibk_gpx(
+            graph,
+            clique | {node},
+            prospective_nodes & graph.neighbors(node),
+            exclusions & graph.neighbors(node)
+        )
+        exclusions.add(node)
 
 
 @cache

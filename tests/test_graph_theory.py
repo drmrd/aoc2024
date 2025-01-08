@@ -5,6 +5,23 @@ import pytest
 from aoc2024.graph_theory import DiGraph, UndirectedGraph, grid2d
 
 
+@pytest.fixture
+def karate_club() -> UndirectedGraph[int]:
+    return UndirectedGraph(
+        (2, 1), (3, 1), (3, 2), (4, 1), (4, 2), (4, 3), (5, 1), (6, 1), (7, 1),
+        (7, 5), (7, 6), (8, 1), (8, 2), (8, 3), (8, 4), (9, 1), (9, 3),
+        (10, 3), (11, 1), (11, 5), (11, 6), (12, 1), (13, 1), (13, 4), (14, 1),
+        (14, 2), (14, 3), (14, 4), (17, 6), (17, 7), (18, 1), (18, 2), (20, 1),
+        (20, 2), (22, 1), (22, 2), (26, 24), (26, 25), (28, 3), (28, 24),
+        (28, 25), (29, 3), (30, 24), (30, 27), (31, 2), (31, 9), (32, 1),
+        (32, 25), (32, 26), (32, 29), (33, 3), (33, 9), (33, 15), (33, 16),
+        (33, 19), (33, 21), (33, 23), (33, 24), (33, 30), (33, 31), (33, 32),
+        (34, 9), (34, 10), (34, 14), (34, 15), (34, 16), (34, 19), (34, 20),
+        (34, 21), (34, 23), (34, 24), (34, 27), (34, 28), (34, 29), (34, 30),
+        (34, 31), (34, 32), (34, 33)
+    )
+
+
 @pytest.mark.parametrize(
     'graph_class',
     (UndirectedGraph, DiGraph)
@@ -247,26 +264,21 @@ class TestGraph:
                 f'{actual_neighbors}.'
             )
 
-    def test_can_compute_all_shortest_paths_from_a_source_node(self):
-        G = UndirectedGraph(
-            (0, 1, 5), (1, 2, 3), (2, 3, 7), (3, 4, 5),
-            (0, 2, 7), (0, 4, 10),
-            (10, 11, 1)
-        )
-
-        expected_distance = {
-            0: ([[0]], 0),
-            1: ([[0, 1]], 5),
-            2: ([[0, 2]], 7),
-            3: ([[0, 2, 3]], 14),
-            4: ([[0, 4]], 10),
-            10: ([], math.inf),
-            11: ([], math.inf)
+    def test_can_find_all_maximal_cliques(self, karate_club):
+        expected_clique_membership = {
+            1: 13, 2: 6, 3: 7, 4: 3, 5: 2, 6: 3, 7: 3, 8: 1, 9: 3, 10: 2, 11: 2,
+            12: 1, 13: 1, 14: 2, 15: 1, 16: 1, 17: 1, 18: 1, 19: 1, 20: 2,
+            21: 1, 22: 1, 23: 1, 24: 3, 25: 2, 26: 2, 27: 1, 28: 3, 29: 2,
+            30: 2, 31: 2, 32: 4, 33: 9, 34: 14
         }
-        assert G.all_shortest_paths(0) == expected_distance
 
-        for target in G.nodes:
-            assert G.all_shortest_paths(0, target) == expected_distance[target]
+        actual_cliques = karate_club.cliques()
+
+        actual_clique_membership = {
+            node: sum(node in clique for clique in actual_cliques)
+            for node in karate_club.nodes
+        }
+        assert actual_clique_membership == expected_clique_membership
 
 
 class TestDiGraph:
