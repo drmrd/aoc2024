@@ -31,7 +31,13 @@ def solve_part_one():
 
 
 def solve_part_two():
-    return 'TBD'
+    lan_party = max(
+        UndirectedGraph(*(
+            line.split('-') for line in utilities.input_lines(day=23)
+        )).cliques(),
+        key=len
+    )
+    return ','.join(sorted(lan_party))
 
 
 if __name__ == '__main__':
