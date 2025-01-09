@@ -149,9 +149,9 @@ class TestCommonProperties:
                 )
 
     def test_can_add_nodes_to_graph(self, graph_class):
-        expected_edges = [
+        expected_edges = {
             (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6), (6, 7)
-        ]
+        }
         G = graph_class(*expected_edges)
         assert set(G.nodes) == set(range(8))
 
@@ -159,24 +159,27 @@ class TestCommonProperties:
         G.add_node(9)
 
         assert set(G.nodes) == set(range(10))
+        assert set(G.edges) == expected_edges
 
     def test_can_add_edges_to_graph(self, graph_class):
-        expected_edges = [
+        initial_edges = {
             (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6), (6, 7)
-        ]
-        G = graph_class(*expected_edges)
+        }
+        G = graph_class(*initial_edges)
         initial_nodes = set(G.nodes)
         assert initial_nodes == set(range(8))
-        assert set(G.edges) == set(expected_edges)
+        assert set(G.edges) == set(initial_edges)
 
         for new_edge in [(0, 2), (0, 4), (0, 6), (0, 8)]:
             G.add_edge(new_edge)
             assert set(new_edge).issubset(G.nodes)
             assert new_edge in G.edges
+            if not G.is_directed:
+                assert new_edge[::-1] in G.edges
 
-            expected_edges.append(new_edge)
+            initial_edges.add(new_edge)
             initial_nodes |= set(new_edge)
-            assert set(G.edges) == set(expected_edges)
+            assert set(G.edges) == set(initial_edges)
             assert set(G.nodes) == initial_nodes
 
             if hasattr(G, 'parents'):
@@ -184,6 +187,7 @@ class TestCommonProperties:
             if hasattr(G, 'children'):
                 assert new_edge[1] in G.children(new_edge[0])
             if hasattr(G, 'neighbors'):
+                assert new_edge[0] in G.neighbors(new_edge[1])
                 assert new_edge[1] in G.neighbors(new_edge[0])
 
         assert set(G.nodes) == set(range(9))
