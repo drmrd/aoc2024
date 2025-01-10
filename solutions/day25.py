@@ -13,7 +13,7 @@ def solve_part_one():
 
 
 def solve_part_two():
-    return 'TBD'
+    return 'Chronicle delivered!'
 
 
 def locks_and_keys():
