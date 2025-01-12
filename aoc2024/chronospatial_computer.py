@@ -1,7 +1,7 @@
 from collections import deque
 from collections.abc import Callable, Mapping
 from copy import deepcopy
-from typing import Generator
+from typing import Generator, Sequence
 
 
 class ChronospatialComputer:
@@ -18,8 +18,8 @@ class ChronospatialComputer:
             )
         )
         self._pointer = 0
-        self._program = None
-        self._program_length = None
+        self._program: Sequence[int] = []
+        self._program_length = 0
         self._outputs: deque[int] = deque()
 
     @property
@@ -42,7 +42,7 @@ class ChronospatialComputer:
             )
     ) -> tuple[int, ...]:
         while (
-                (0 <= self._pointer < self._program_length - 1)
+                0 <= self._pointer < self._program_length - 1
                 and not halt_condition(self._register, self._outputs)
         ):
             opcode, operand = (
@@ -67,9 +67,9 @@ class ChronospatialComputer:
         self._pointer = 0
         self._outputs = deque()
 
-    def find_minimal_register_a_state(
+    def find_minimal_register_a_state(  # type: ignore
             self,
-            desired_outputs: tuple[int],
+            desired_outputs: Sequence[int],
             partial_a: int = 0
     ) -> int | None:
         if not desired_outputs:
