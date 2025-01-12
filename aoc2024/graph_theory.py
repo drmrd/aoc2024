@@ -28,12 +28,14 @@ class UndirectedGraph[T: Hashable]:
             edges, default_edge_weight, self.is_directed
         )
         self._nodes = _build_node_list(self._edges)
-        self._neighbors = {source: set() for source in self._nodes}
+        self._neighbors: dict[Node[T], set[Node[T]]] = {
+            source: set() for source in self._nodes
+        }
         for source, target in self._edges:
             self._neighbors[source].add(target)
             self._neighbors[target].add(source)
 
-    def __getitem__(self, item: Node[T] | Edge[T]):
+    def __getitem__(self, item: Edge[T]):
         return self._edge_attributes[item]
 
     @property
@@ -148,25 +150,25 @@ class UndirectedGraph[T: Hashable]:
         )
 
     @cache
-    def neighbors(self, node: Node) -> Set[T]:
+    def neighbors(self, node: Node[T]) -> Set[T]:
         return self._neighbors[node]
 
     @cache
-    def cliques(self) -> Sequence[set[Node]]:
+    def cliques(self) -> Sequence[set[Node[T]]]:
         return list(_ibk_gpx(self, set(), set(self.nodes), set()))
 
     @cache
     def all_shortest_paths(
             self,
-            source: Node,
-            target: Node | None = None,
+            source: Node[T],
+            target: Node[T] | None = None,
             with_distance: bool = True,
             edge_weight = 'weight'
     ) -> Union[
-            Sequence[Node],
-            tuple[Sequence[Node], float],
-            Mapping[Node, Sequence[Node]],
-            Mapping[Node, tuple[Sequence[Node], float]]
+            Sequence[Node[T]],
+            tuple[Sequence[Node[T]], float],
+            Mapping[Node[T], Sequence[Node[T]]],
+            Mapping[Node[T], tuple[Sequence[Node[T]], float]]
     ]:
         return all_shortest_paths(
             graph=self,
@@ -179,19 +181,19 @@ class UndirectedGraph[T: Hashable]:
     @cache
     def shortest_path_astar(
             self,
-            source: Node,
-            target: Node,
-            heuristic: Callable[[Edge, Edge], float],
+            source: Node[T],
+            target: Node[T],
+            heuristic: Callable[[Node[T], Node[T]], float],
             edge_weight = 'weight'
-    ) -> tuple[Sequence[Node], float]:
+    ) -> tuple[Sequence[Node[T]], float]:
         if isinstance(edge_weight, str):
             def get_weight(edge):
                 return self.edges[edge][edge_weight]
         else:
-            def get_weight(edge):
+            def get_weight(_):
                 return edge_weight
 
-        def recover_path(parent, end):
+        def recover_path(previous, end):
             current = end
             path = deque([current])
             while current in previous:
@@ -199,31 +201,31 @@ class UndirectedGraph[T: Hashable]:
                 path.appendleft(current)
             return list(path)
 
-        score_best_known: defaultdict[Node, float] = defaultdict(
+        score_best_known: defaultdict[Node[T], float] = defaultdict(
             lambda: math.inf
         )
         # g_score
         score_best_known[source] = 0
 
-        score_through_node: defaultdict[Node, float] = defaultdict(
+        score_through_node: defaultdict[Node[T], float] = defaultdict(
             lambda: math.inf
         )
         # f_score
         score_through_node[source] = heuristic(source, target)
 
-        open_set = []  # list of entries arranged in a heap
+        open_set: list[tuple[float, int, Node[T]]] = []  # list of entries arranged in a heap
         entry_finder = {}  # mapping of tasks to entries
         REMOVED = '<removed-task>'  # placeholder for a removed task
         counter = itertools.count()  # unique sequence count
 
-        def add_task(task, priority: float = 0):
+        def add_task(task: Node[T], priority: float = 0):
             'Add a new task or update the priority of an existing task'
             if task in entry_finder:
                 remove_task(task)
             count = next(counter)
             entry = [priority, count, task]
             entry_finder[task] = entry
-            heapq.heappush(open_set, entry)
+            heapq.heappush(open_set, entry)  # type: ignore
 
         def remove_task(task):
             'Mark an existing task as REMOVED. Raise KeyError if not found.'
@@ -239,7 +241,7 @@ class UndirectedGraph[T: Hashable]:
                     return task, priority
             raise KeyError('pop from an empty priority queue')
 
-        previous = {}
+        previous: dict[Node[T], Node[T]] = {}
         add_task(source, score_through_node[source])
 
         while open_set:
@@ -256,7 +258,8 @@ class UndirectedGraph[T: Hashable]:
                     previous[neighbor] = current
                     score_best_known[neighbor] = updated_best_known
                     score_through_node[neighbor] = (
-                        updated_best_known + heuristic(neighbor, target)
+                        updated_best_known
+                        + heuristic(neighbor, target)
                     )
                     add_task(neighbor, score_through_node[neighbor])
 
@@ -266,7 +269,7 @@ class UndirectedGraph[T: Hashable]:
 class DiGraph[T: Hashable]:
     def __init__(
             self,
-            *edges: Edge | tuple[*Edge, Any],
+            *edges: Edge[T] | tuple[*Edge[T], Any],
             default_edge_weight: Any = None
     ):
         self._edges = _build_edge_list(edges)
@@ -275,7 +278,7 @@ class DiGraph[T: Hashable]:
         )
         self._nodes = _build_node_list(self._edges)
 
-    def __getitem__(self, item: Node[T] | Edge[T]):
+    def __getitem__(self, item: Edge[T]):
         return self._edge_attributes[item]
 
     @property
@@ -389,15 +392,15 @@ class DiGraph[T: Hashable]:
     @cache
     def all_shortest_paths(
             self,
-            source: Node,
-            target: Node | None = None,
+            source: Node[T],
+            target: Node[T] | None = None,
             with_distance: bool = True,
             edge_weight = 'weight'
     ) -> Union[
-            Sequence[Node],
-            tuple[Sequence[Node], float],
-            Mapping[Node, Sequence[Node]],
-            Mapping[Node, tuple[Sequence[Node], float]]
+            Sequence[Node[T]],
+            tuple[Sequence[Node[T]], float],
+            Mapping[Node[T], Sequence[Node[T]]],
+            Mapping[Node[T], tuple[Sequence[Node[T]], float]]
     ]:
         return all_shortest_paths(
             graph=self,
@@ -538,18 +541,18 @@ def _ibk_gpx[T: Hashable](
 @cache
 def all_shortest_paths[T: Hashable](
         graph: UndirectedGraph[T] | DiGraph[T],
-        source: Node,
-        target: Node | None = None,
+        source: Node[T],
+        target: Node[T] | None = None,
         with_distance: bool = True,
         edge_weight = 'weight'
 ) -> Union[
-        Sequence[Node],
-        tuple[Sequence[Node], float],
-        Mapping[Node, Sequence[Node]],
-        Mapping[Node, tuple[Sequence[Node], float]]
+        Sequence[Node[T]],
+        tuple[Sequence[Node[T]], float],
+        Mapping[Node[T], Sequence[Node[T]]],
+        Mapping[Node[T], tuple[Sequence[Node[T]], float]]
 ]:
     if not graph.is_directed:
-        graph = graph.to_directed()
+        graph = graph.to_directed()  # type: ignore
 
     if isinstance(edge_weight, str):
         def get_weight(edge):
@@ -558,11 +561,11 @@ def all_shortest_paths[T: Hashable](
         def get_weight(edge):
             return edge_weight
 
-    distance_from_source: defaultdict[Node, float] = defaultdict(
+    distance_from_source: defaultdict[Node[T], float] = defaultdict(
         lambda: math.inf
     )
     distance_from_source[source] = 0
-    previous = {source: None}
+    previous: dict[Node[T], set[Node[T]] | None] = {source: None}
     heap = [(0, source)]
 
     while heap:
@@ -578,16 +581,16 @@ def all_shortest_paths[T: Hashable](
                 continue
             elif updated_distance < current_distance:
                 distance_from_source[neighbor] = updated_distance
-                previous[neighbor] = {node}
+                previous[neighbor] = {node}  # type: ignore
             else:
-                previous[neighbor].add(node)
+                previous[neighbor].add(node)  # type: ignore
             heapq.heappush(
                 heap, (updated_distance, neighbor)
             )
 
     def prepare_paths(
-            target: Node,
-            previous: Mapping[Node, set[Node]],
+            target: Node[T],
+            previous: Mapping[Node[T], set[Node[T]] | None],
             with_distance: bool
     ):
         if target in previous:
@@ -613,14 +616,14 @@ def _recover_all_paths[T: Hashable](
         node: Node[T],
         predecessor_set: Mapping[Node[T], set[Node[T]] | None],
         path_tails: Sequence[Sequence[Node[T]]] | None = None
-) -> Sequence[Sequence[Node[T]]]:
+) -> list[list[Node[T]]]:
     if path_tails is None:
         path_tails = deque([deque([node])])
 
     return [
         list(path)
         for path in _recover_all_paths_recurrence(
-            node, predecessor_set, path_tails
+            node, predecessor_set, deque(deque(tail) for tail in path_tails)
         )
     ]
 
@@ -628,19 +631,19 @@ def _recover_all_paths[T: Hashable](
 def _recover_all_paths_recurrence[T: Hashable](
         node: Node[T],
         predecessor_set: Mapping[Node[T], set[Node[T]] | None],
-        path_tails: deque[deque[Node[T]]] | None = None
+        path_tails: deque[deque[Node[T]]]
 ) -> deque[deque[Node[T]]]:
     predecessors = predecessor_set[node]
     if predecessors is None:
         return path_tails
 
-    recovered_paths = deque()
+    recovered_paths: deque[deque[Node[T]]] = deque()
     for predecessor in predecessors:
         predecessor_path_tails = deepcopy(path_tails)
         for tail in predecessor_path_tails:
             tail.appendleft(predecessor)
         recovered_paths.extend(
-            _recover_all_paths(
+            _recover_all_paths_recurrence(
                 predecessor,
                 predecessor_set,
                 predecessor_path_tails
