@@ -22,23 +22,23 @@ class Component(str, Enum):
     END = 'E'
 
 
-class Maze:
+class Maze[PositionType: Position | OrientedPosition]:
     def __init__(
             self,
-            graph: UndirectedGraph[OrientedPosition],
-            start: OrientedPosition,
-            ends: Sequence[OrientedPosition]
+            graph: UndirectedGraph[PositionType],
+            start: PositionType,
+            ends: Sequence[PositionType]
     ):
         self._graph = graph
         self._start = start
         self._ends = set(ends)
 
     @property
-    def start(self) -> Position | OrientedPosition:
+    def start(self) -> PositionType:
         return self._start
 
     @property
-    def ends(self) -> set[Position] | set[OrientedPosition]:
+    def ends(self) -> set[PositionType]:
         return self._ends
 
     def find_cheapest_paths(self):
@@ -61,7 +61,7 @@ class Maze:
             for end in self._ends
         }
 
-    def to_graph(self) -> UndirectedGraph[Position] | UndirectedGraph[OrientedPosition]:
+    def to_graph(self) -> UndirectedGraph[PositionType]:
         return deepcopy(self._graph)
 
     @classmethod
@@ -88,22 +88,22 @@ class Maze:
         create_node = partial(Maze.create_node, oriented=oriented_nodes)
         create_edge = partial(Maze.create_edge, oriented=oriented_nodes)
 
-        edges = deque()
-        start = None
-        ends = deque()
+        edges: deque[tuple[PositionType, PositionType]] = deque()
+        start: PositionType | None = None
+        ends: deque[PositionType] = deque()
         for position, entry in parsed_passable_position.items():
             if entry is Component.START:
                 if start is not None:
                     raise NotImplementedError(
                         'Multiple starting locations are not supported.'
                     )
-                start = create_node(position, start_direction)
+                start = create_node(position, start_direction)  # type: ignore
             for direction in (Direction.DOWN, Direction.RIGHT):
                 if entry is Component.END:
-                    ends.append(create_node(position, direction))
+                    ends.append(create_node(position, direction))  # type: ignore
                 if oriented_nodes:
                     edges.append(
-                        create_edge(
+                        create_edge(  # type: ignore
                             position, direction,
                             position, direction.rotate_clockwise(),
                             cost_rotate
@@ -112,7 +112,7 @@ class Maze:
                 neighbor = tuple(Vector(*position) + direction.grid_vector)
                 if neighbor in parsed_passable_position:
                     edges.append(
-                        create_edge(
+                        create_edge(  # type: ignore
                             position, direction,
                             neighbor, direction,
                             cost_move_forward
@@ -122,15 +122,21 @@ class Maze:
         maze_graph = UndirectedGraph(*edges)
         return cls(
             graph=maze_graph,
-            start=start,
+            start=start,  # type: ignore
             ends=ends
         )
 
     @staticmethod
     def create_node(
-            position: Position, direction: Direction, oriented: bool = False
+            position: Position,
+            direction: Direction | None,
+            oriented: bool = False
     ) -> Position | OrientedPosition:
-        return (position, direction) if oriented else position
+        if oriented and direction is None:
+            raise ValueError(
+                'A direction must be provided to create an oriented node.'
+            )
+        return (position, direction) if oriented else position  # type: ignore
 
     @staticmethod
     def create_edge(
