@@ -8,22 +8,28 @@ from aoc2024 import utilities
 from aoc2024.graph_theory import DiGraph
 
 
+@dataclass
+class BinaryOperator[T]:
+    function: Callable[[T, T], T]
+    in_nodes: tuple[str, str]
+
+
 class ComputationGraph[T]:
     def __init__(
             self,
             input_nodes: Sequence[str],
             output_nodes: Sequence[str],
             transformations: Sequence[
-                tuple[Callable[[...], T], Sequence[str], str]
+                tuple[Callable[[T, T], T], tuple[str, str], str]
             ]
     ):
         self._inputs = input_nodes
         self._outputs = output_nodes
-        self._transformation = {
-            out: {'function': func, 'in_nodes': in_}
+        self._transformation: dict[str, BinaryOperator[T]] = {
+            out: BinaryOperator(func, in_)
             for func, in_, out in transformations
         }
-        self._graph = DiGraph(*(
+        self._graph: DiGraph[str] = DiGraph(*(
                 (in_node, out_node)
                 for _, in_nodes, out_node in transformations
                 for in_node in in_nodes
@@ -63,8 +69,8 @@ class ComputationGraph[T]:
             if node not in self._inputs
         ]
         for node in uncomputed_nodes:
-            in_nodes = self._transformation[node]['in_nodes']
-            function = self._transformation[node]['function']
+            in_nodes = self._transformation[node].in_nodes
+            function: Callable[[T, T], T] = self._transformation[node].function
             computed_value[node] = function(*(
                 computed_value[in_node] for in_node in in_nodes
             ))
@@ -86,18 +92,18 @@ class Gate:
 @dataclass
 class FullAdder:
     # Inputs
-    in_wire1: str = None
-    in_wire2: str = None
+    in_wire1: str | None = None
+    in_wire2: str | None = None
     carry_in: str | None = None
 
     # Intermediate State
-    sum_precarry: str = None
-    sum_carry: str = None
-    carry_intermediate: str = None
+    sum_precarry: str | None = None
+    sum_carry: str | None = None
+    carry_intermediate: str | None = None
 
     # Outputs
-    sum: str = None
-    carry_out: str = None
+    sum: str | None = None
+    carry_out: str | None = None
 
 
 def solve_part_one():
@@ -159,7 +165,7 @@ def solve_part_two(report_adders=False):
 
     swapped_wires = set()
 
-    adders: deque[FullAdder] = deque([create_adder(0, gates)])
+    adders = deque([create_adder(0, gates)])
     for index in range(1, 45):
         previous_carry_out = adders[-1].carry_out
 
@@ -280,7 +286,9 @@ def repair_adders(adders: deque[FullAdder], gates):
 
 
 def apply_repair(
-        repair: Callable[[FullAdder, int], tuple[FullAdder, set[str]] | None],
+        repair: Callable[
+            [FullAdder, int], tuple[FullAdder, tuple[str, str]] | None
+        ],
         adders: deque[FullAdder],
         index: int,
         gates: list[Gate]
@@ -307,9 +315,9 @@ def apply_repair(
 def fix_swapped_sum_wire(
         adder: FullAdder,
         index: int
-) -> tuple[FullAdder, tuple] | None:
+) -> tuple[FullAdder, tuple[str, str]] | None:
     if index >= 45:
-        return
+        return None
     actual_sum = adder.sum
     expected_sum = io_wire('z', index)
     if actual_sum is not None and actual_sum != expected_sum:
@@ -319,17 +327,19 @@ def fix_swapped_sum_wire(
                 setattr(adder, 'sum', expected_sum)
                 break
         else:
-            return
+            return None
         return adder, (actual_sum, expected_sum)
+    return None
 
-
+# Callable[[FullAdder, int], tuple[FullAdder, tuple[str, str]] | None]
+# Callable[[FullAdder, int], tuple[FullAdder, set[str]] | None]
 def fix_swapped_raw_sum_outputs(
         adder: FullAdder, _: int
-) -> tuple[FullAdder, tuple] | None:
+) -> tuple[FullAdder, tuple[str, str]] | None:
     swapped_roles = 'sum_precarry', 'sum_carry'
     swapped_wires = tuple(getattr(adder, role) for role in swapped_roles)
     if any(wire is None for wire in swapped_wires):
-        return
+        return None
     for role, swapped_wire in zip(swapped_roles, swapped_wires[::-1]):
         setattr(adder, role, swapped_wire)
     return adder, swapped_wires
