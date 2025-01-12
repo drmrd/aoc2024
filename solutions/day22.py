@@ -40,7 +40,7 @@ def first_occurrences(items, list_):
 
 def solve_part_one():
     total = 0
-    for secret_number in map(int, utilities.input_lines(day=22)):
+    for secret_number in map(int, utilities.input_lines(year=2024, day=22)):
         for _ in range(2000):
             secret_number = evolve(secret_number)
         total += secret_number
@@ -51,7 +51,7 @@ def solve_part_two():
     last_secret_digit_sequences = [
         [secret % 10 for secret in itertools.islice(
             secret_sequence(monkey_secret), 2000)]
-        for monkey_secret in map(int, utilities.input_lines(day=22))
+        for monkey_secret in map(int, utilities.input_lines(year=2024, day=22))
     ]
     first_differences = [
         [

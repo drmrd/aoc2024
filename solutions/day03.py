@@ -2,12 +2,12 @@ from aoc2024 import compuboggan, utilities
 
 
 def solve_part_one():
-    source_code = '\n'.join(utilities.input_lines(day=3))
+    source_code = '\n'.join(utilities.input_lines(year=2024, day=3))
     return compuboggan.eval(source_code, command_whitelist={'do', 'mul'})
 
 
 def solve_part_two():
-    source_code = '\n'.join(utilities.input_lines(day=3))
+    source_code = '\n'.join(utilities.input_lines(year=2024, day=3))
     return compuboggan.eval(source_code)
 
 

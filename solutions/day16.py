@@ -7,7 +7,7 @@ def solve_part_one():
     return min(
         score
         for _, score in Maze.from_map(
-            '\n'.join(utilities.input_lines(day=16)),
+            '\n'.join(utilities.input_lines(year=2024, day=16)),
             oriented_nodes=True,
             start_direction=Direction.RIGHT
         ).find_cheapest_paths().values()
@@ -16,7 +16,7 @@ def solve_part_one():
 
 def solve_part_two():
     best_paths = Maze.from_map(
-        '\n'.join(utilities.input_lines(day=16)),
+        '\n'.join(utilities.input_lines(year=2024, day=16)),
         oriented_nodes=True,
         start_direction=Direction.RIGHT
     ).find_cheapest_paths().values()

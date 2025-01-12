@@ -5,7 +5,7 @@ from aoc2024.graph_theory import grid2d
 
 
 def solve_part_one():
-    pushed_bytes = list(utilities.input_lines(day=18))
+    pushed_bytes = list(utilities.input_lines(year=2024, day=18))
 
     memory_space = grid2d(71, 71)
     for pushed_byte in pushed_bytes[:1024]:
@@ -19,7 +19,7 @@ def solve_part_one():
 
 
 def solve_part_two():
-    pushed_bytes = list(utilities.input_lines(day=18))
+    pushed_bytes = list(utilities.input_lines(year=2024, day=18))
 
     memory_space = grid2d(71, 71)
     for pushed_byte in pushed_bytes[:1024]:

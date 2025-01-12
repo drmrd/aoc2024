@@ -6,7 +6,7 @@ from aoc2024.graph_theory import UndirectedGraph
 
 def solve_part_one():
     lan = UndirectedGraph(*(
-        line.split('-') for line in utilities.input_lines(day=23)
+        line.split('-') for line in utilities.input_lines(year=2024, day=23)
     ))
     lan_maximal_cliques = lan.cliques()
 
@@ -33,7 +33,7 @@ def solve_part_one():
 def solve_part_two():
     lan_party = max(
         UndirectedGraph(*(
-            line.split('-') for line in utilities.input_lines(day=23)
+            line.split('-') for line in utilities.input_lines(year=2024, day=23)
         )).cliques(),
         key=len
     )

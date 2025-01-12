@@ -15,7 +15,7 @@ def solve_part_one():
         (int(test_value), tuple(int(operand) for operand in operands.split(' ')))
         for test_value, operands in map(
             lambda equation: equation.split(': '),
-            utilities.input_lines(day=7)
+            utilities.input_lines(year=2024, day=7)
         )
     )
     return sum(
@@ -36,7 +36,7 @@ def solve_part_two():
         (int(test_value), tuple(int(operand) for operand in operands.split(' ')))
         for test_value, operands in map(
             lambda equation: equation.split(': '),
-            utilities.input_lines(day=7)
+            utilities.input_lines(year=2024, day=7)
         )
     )
     return sum(

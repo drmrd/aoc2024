@@ -124,14 +124,14 @@ def complexity(code: str, directional_robots: int) -> int:
 def solve_part_one():
     return sum(
         complexity(code, directional_robots=2)
-        for code in utilities.input_lines(day=21)
+        for code in utilities.input_lines(year=2024, day=21)
     )
 
 
 def solve_part_two():
     return sum(
         complexity(code, directional_robots=25)
-        for code in utilities.input_lines(day=21)
+        for code in utilities.input_lines(year=2024, day=21)
     )
 
 

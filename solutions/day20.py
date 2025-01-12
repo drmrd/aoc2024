@@ -10,7 +10,7 @@ from aoc2024.vector import taxicab
 
 def solve_part_one():
     maze = Maze.from_map(
-        '\n'.join(utilities.input_lines(day=20)), oriented_nodes=False
+        '\n'.join(utilities.input_lines(year=2024, day=20)), oriented_nodes=False
     )
 
     return count_cheats(maze, max_cheat_length_ps=2, min_time_savings_ps=100)
@@ -18,7 +18,7 @@ def solve_part_one():
 
 def solve_part_two():
     maze = Maze.from_map(
-        '\n'.join(utilities.input_lines(day=20)), oriented_nodes=False
+        '\n'.join(utilities.input_lines(year=2024, day=20)), oriented_nodes=False
     )
 
     return count_cheats(maze, max_cheat_length_ps=20, min_time_savings_ps=100)

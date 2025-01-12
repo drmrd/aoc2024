@@ -107,7 +107,7 @@ class FullAdder:
 
 
 def solve_part_one():
-    fruit_monitor_notes = list(utilities.input_lines(day=24))
+    fruit_monitor_notes = list(utilities.input_lines(year=2024, day=24))
     notes_divider = fruit_monitor_notes.index('')
     system_inputs = {
         wire: int(value)
@@ -152,7 +152,7 @@ def solve_part_one():
 
 
 def solve_part_two(report_adders=False):
-    fruit_monitor_notes = list(utilities.input_lines(day=24))
+    fruit_monitor_notes = list(utilities.input_lines(year=2024, day=24))
     notes_divider = fruit_monitor_notes.index('')
     gate_pattern = re.compile(
         r'^(?P<in_wire1>\w+) (?P<operator>\w+) '

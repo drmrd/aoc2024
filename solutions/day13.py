@@ -32,7 +32,7 @@ def claw_machines() -> Iterator[tuple[int, int, int, int, int, int]]:
             r'Button B: X\+(\d+), Y\+(\d+)',
             r'Prize: X=(\d+), Y=(\d+)'
         ]),
-        '\n'.join(utilities.input_lines(day=13))
+        '\n'.join(utilities.input_lines(year=2024, day=13))
     ):
         yield tuple(
             int(coefficient) for coefficient in claw_machine.groups()

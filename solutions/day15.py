@@ -4,7 +4,7 @@ from aoc2024.lanternfish_wms import Box, Warehouse, DummyThiccBox, DummyThiccWal
 
 def solve_part_one():
     warehouse_map, roe_bot_routine_lines = (
-        '\n'.join(utilities.input_lines(day=15))
+        '\n'.join(utilities.input_lines(year=2024, day=15))
     ).split('\n\n')
     warehouse = Warehouse.from_lanternfish_printout(
         map_=warehouse_map.split('\n'),
@@ -26,7 +26,7 @@ def solve_part_one():
 
 def solve_part_two():
     warehouse_map, roe_bot_routine_lines = (
-        '\n'.join(utilities.input_lines(day=15))
+        '\n'.join(utilities.input_lines(year=2024, day=15))
     ).split('\n\n')
     warehouse = Warehouse.from_lanternfish_printout(
         map_=warehouse_map.split('\n'),

@@ -59,7 +59,7 @@ def solve_part_two(visualize=False, fps=60):
 def _count_trails(
         allow_revisiting: bool, visualize: bool = False, fps: int = 60
 ) -> int:
-    topographical_map = utilities.input_grid(day=10, caster=int)
+    topographical_map = utilities.input_grid(year=2024, day=10, caster=int)
     map_shape = len(topographical_map), len(topographical_map[0])
     trailheads = [
         (row, column)

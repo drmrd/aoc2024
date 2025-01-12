@@ -2,7 +2,7 @@ from aoc2024 import printer, utilities
 
 
 def solve_part_one():
-    rules_and_lists = list(utilities.input_lines(day=5))
+    rules_and_lists = list(utilities.input_lines(year=2024, day=5))
     dividing_line = rules_and_lists.index('')
     rules = rules_and_lists[:dividing_line]
     lists = [
@@ -17,7 +17,7 @@ def solve_part_one():
 
 
 def solve_part_two():
-    rules_and_lists = list(utilities.input_lines(day=5))
+    rules_and_lists = list(utilities.input_lines(year=2024, day=5))
     dividing_line = rules_and_lists.index('')
     rules = rules_and_lists[:dividing_line]
     lists = [

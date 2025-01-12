@@ -15,7 +15,7 @@ def count_arrangements(design: str, patterns: tuple[str, ...]) -> int:
 
 
 def solve_part_one():
-    puzzle_input = utilities.input_lines(day=19)
+    puzzle_input = utilities.input_lines(year=2024, day=19)
     patterns = tuple(
         sorted(
             next(puzzle_input).split(', '),
@@ -32,7 +32,7 @@ def solve_part_one():
 
 
 def solve_part_two():
-    puzzle_input = utilities.input_lines(day=19)
+    puzzle_input = utilities.input_lines(year=2024, day=19)
     patterns = tuple(
         sorted(
             next(puzzle_input).split(', '),

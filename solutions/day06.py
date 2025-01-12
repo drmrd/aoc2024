@@ -5,12 +5,12 @@ from aoc2024.guard_simulator_2024 import GuardedLab
 
 
 def solve_part_one():
-    *_, lab = iter(GuardedLab(list(utilities.input_lines(day=6))))
+    *_, lab = iter(GuardedLab(list(utilities.input_lines(year=2024, day=6))))
     return lab.visited_count
 
 
 def solve_part_two():
-    lab = GuardedLab(list(utilities.input_lines(day=6)))
+    lab = GuardedLab(list(utilities.input_lines(year=2024, day=6)))
     guard_start_position = lab.guard_position
     guard_start_orientation = lab.guard_orientation
 

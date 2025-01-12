@@ -5,7 +5,7 @@ from aoc2024.modern_garden import fence_cost
 
 
 def solve_part_one():
-    garden_grid = utilities.input_grid(day=12)
+    garden_grid = utilities.input_grid(year=2024, day=12)
     garden_shape = (len(garden_grid), len(garden_grid[0]))
     return fence_cost({
         (row, column): garden_grid[row][column]
@@ -14,7 +14,7 @@ def solve_part_one():
 
 
 def solve_part_two():
-    garden_grid = utilities.input_grid(day=12)
+    garden_grid = utilities.input_grid(year=2024, day=12)
     garden_shape = (len(garden_grid), len(garden_grid[0]))
     return fence_cost(
         {

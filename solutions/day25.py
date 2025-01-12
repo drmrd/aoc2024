@@ -17,7 +17,7 @@ def solve_part_two():
 
 
 def locks_and_keys():
-    schematics = '\n'.join(utilities.input_lines(day=25)).split('\n\n')
+    schematics = '\n'.join(utilities.input_lines(year=2024, day=25)).split('\n\n')
     locks, keys = deque(), deque()
     for schematic in schematics:
         rows = schematic.split('\n')

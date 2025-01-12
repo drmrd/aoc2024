@@ -61,7 +61,7 @@ def robot_guards():
         }
         for robot in re.finditer(
             r'p=(\d+),(\d+) v=(-?\d+),(-?\d+)',
-            '\n'.join(utilities.input_lines(day=14))
+            '\n'.join(utilities.input_lines(year=2024, day=14))
         )
     ]
 

@@ -8,7 +8,7 @@ from aoc2024.vector import Vector
 
 
 def solve_part_one():
-    puzzle_input = list(utilities.input_lines(day=8))
+    puzzle_input = list(utilities.input_lines(year=2024, day=8))
 
     mind_controlled_by_frequency = ebc.imc_mind_control_nearest_locations(
         antennae_by_frequency={
@@ -31,7 +31,7 @@ def solve_part_one():
 
 
 def solve_part_two():
-    puzzle_input = list(utilities.input_lines(day=8))
+    puzzle_input = list(utilities.input_lines(year=2024, day=8))
 
     mind_controlled_by_frequency = ebc.imc_mind_control_locations(
         antennae_by_frequency={
