@@ -2,32 +2,15 @@ from __future__ import annotations
 
 import itertools
 import math
-from enum import Enum
-from functools import lru_cache
 
+from aoc2024.pathfinding import Direction
 from aoc2024.vector import Vector
 
-
-class Direction(Enum):
-    UP = -1j
-    DOWN = 1j
-    LEFT = -1
-    RIGHT = 1
-
-    @lru_cache(4)
-    def offsets(self) -> tuple[int, int]:
-        return int(self.value.imag), int(self.value.real)
-
-    @lru_cache(4)
-    def rotate_counterclockwise(self) -> Direction:
-        return Direction(self.value * -1j)
-
-    @lru_cache(4)
-    def rotate_clockwise(self) -> Direction:
-        return Direction(self.value * 1j)
+type Plot = tuple[int, int]
+type Region = frozenset[Plot]
 
 
-def garden_regions(garden: dict[tuple[int, int], str]) -> set[frozenset[tuple[int, int]]]:
+def garden_regions(garden: dict[Plot, str]) -> set[Region]:
     *_, final_indices = garden
     garden_shape = (final_indices[0] + 1, final_indices[1] + 1)
     region = {
@@ -47,13 +30,13 @@ def garden_regions(garden: dict[tuple[int, int], str]) -> set[frozenset[tuple[in
     return set(map(frozenset, region.values()))  # type: ignore
 
 
-def area(region: frozenset[tuple[int, int]]) -> int:
+def area(region: Region) -> int:
     return len(region)
 
 
-def edges(region: frozenset[tuple[int, int]]) -> int:
+def edges(region: Region) -> int:
     region_vectors = {Vector(*plot) for plot in region}
-    cardinal_directions = [Vector(*direction.offsets()) for direction in Direction]
+    cardinal_directions = [Vector(*direction.grid_offsets) for direction in Direction]
     boundary_edge_segments = {
         (plot, direction)
         for plot in region_vectors
@@ -64,8 +47,8 @@ def edges(region: frozenset[tuple[int, int]]) -> int:
         (
             plot + Vector(
                 *Direction(
-                    complex(*reversed(direction))
-                ).rotate_clockwise().offsets()
+                    complex(*(direction))
+                ).rotate_clockwise().grid_offsets
             ),
             direction
         )
@@ -74,11 +57,11 @@ def edges(region: frozenset[tuple[int, int]]) -> int:
     return len(boundary_edge_representatives)
 
 
-def perimeter(region: frozenset[tuple[int, int]]) -> int:
+def perimeter(region: Region) -> int:
     return sum(_plot_perimeter(plot, region) for plot in region)
 
 
-def fence_cost(garden: dict[tuple[int, int], str], bulk_discount=False) -> int:
+def fence_cost(garden: dict[Plot, str], bulk_discount=False) -> int:
     length_function = edges if bulk_discount else perimeter
     return sum(
         area(region) * length_function(region)
@@ -86,11 +69,15 @@ def fence_cost(garden: dict[tuple[int, int], str], bulk_discount=False) -> int:
     )
 
 
-def _plot_perimeter(plot: tuple[int, int], region: frozenset[tuple[int, int]]) -> int:
+def _plot_perimeter(plot: Plot, region: Region) -> int:
     return 4 - len(region & set(_neighbors(plot)))
 
 
-def _neighbors(node, grid_shape=(math.inf, math.inf), directions=('up', 'down', 'left', 'right')):
+def _neighbors(
+        node,
+        grid_shape=(math.inf, math.inf),
+        directions=('up', 'down', 'left', 'right')
+):
     neighbor_offsets = {
         'up': (-1, 0), 'down': (1, 0), 'left': (0, -1), 'right': (0, 1)
     }
