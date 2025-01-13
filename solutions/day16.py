@@ -10,7 +10,7 @@ def solve_part_one():
             '\n'.join(utilities.input_lines(year=2024, day=16)),
             oriented_nodes=True,
             start_direction=Direction.RIGHT
-        ).find_cheapest_paths().values()
+        ).find_all_cheapest_paths().values()
     )
 
 
@@ -19,7 +19,7 @@ def solve_part_two():
         '\n'.join(utilities.input_lines(year=2024, day=16)),
         oriented_nodes=True,
         start_direction=Direction.RIGHT
-    ).find_cheapest_paths().values()
+    ).find_all_cheapest_paths().values()
     best_score = min(score for _, score in best_paths)
     best_path_positions = {
         position

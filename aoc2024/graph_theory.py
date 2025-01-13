@@ -9,6 +9,8 @@ from copy import deepcopy
 from functools import cached_property, cache
 from typing import Any, Union, Generator
 
+from aoc2024.collections import PriorityQueue
+
 type Node[T: Hashable] = T
 type Edge[T: Hashable] = tuple[T, T]
 
@@ -48,11 +50,15 @@ class UndirectedGraph[T: Hashable]:
 
     @cache
     def in_edges(self, node: Node[T]) -> set[Edge[T]]:
-        return {edge for edge in self.edges if node in edge}
+        incident_edges = {edge for edge in self.edges if node in edge}
+        return {
+            (edge[(edge.index(node) + 1) % 2], node)
+            for edge in incident_edges
+        }
 
     @cache
     def out_edges(self, node: Node[T]) -> set[Edge[T]]:
-        return self.in_edges(node)
+        return {edge[::-1] for edge in self.in_edges(node)}
 
     @cached_property
     def nodes(self) -> Sequence[Node[T]]:
@@ -82,7 +88,7 @@ class UndirectedGraph[T: Hashable]:
         self.neighbors.cache_clear()
         self.cliques.cache_clear()
         self.all_shortest_paths.cache_clear()
-        self.shortest_path_astar.cache_clear()
+        self.shortest_path.cache_clear()
 
         try:
             del self.__dict__['edges']
@@ -105,7 +111,7 @@ class UndirectedGraph[T: Hashable]:
         self.neighbors.cache_clear()
         self.cliques.cache_clear()
         self.all_shortest_paths.cache_clear()
-        self.shortest_path_astar.cache_clear()
+        self.shortest_path.cache_clear()
 
         for cached_property_name in ('nodes', 'edges'):
             try:
@@ -131,7 +137,7 @@ class UndirectedGraph[T: Hashable]:
         self.neighbors.cache_clear()
         self.cliques.cache_clear()
         self.all_shortest_paths.cache_clear()
-        self.shortest_path_astar.cache_clear()
+        self.shortest_path.cache_clear()
 
         try:
             del self.__dict__['edges']
@@ -179,7 +185,7 @@ class UndirectedGraph[T: Hashable]:
         )
 
     @cache
-    def shortest_path_astar(
+    def shortest_path(
             self,
             source: Node[T],
             target: Node[T],
@@ -213,44 +219,21 @@ class UndirectedGraph[T: Hashable]:
         # f_score
         score_through_node[source] = heuristic(source, target)
 
-        open_set: list[tuple[float, int, Node[T]]] = []  # list of entries arranged in a heap
-        entry_finder = {}  # mapping of tasks to entries
-        REMOVED = '<removed-task>'  # placeholder for a removed task
-        counter = itertools.count()  # unique sequence count
-
-        def add_task(task: Node[T], priority: float = 0):
-            'Add a new task or update the priority of an existing task'
-            if task in entry_finder:
-                remove_task(task)
-            count = next(counter)
-            entry = [priority, count, task]
-            entry_finder[task] = entry
-            heapq.heappush(open_set, entry)  # type: ignore
-
-        def remove_task(task):
-            'Mark an existing task as REMOVED. Raise KeyError if not found.'
-            entry = entry_finder.pop(task)
-            entry[-1] = REMOVED
-
-        def pop_task():
-            'Remove and return the lowest priority task. Raise KeyError if empty.'
-            while open_set:
-                priority, count, task = heapq.heappop(open_set)
-                if task is not REMOVED:
-                    del entry_finder[task]
-                    return task, priority
-            raise KeyError('pop from an empty priority queue')
+        queue = PriorityQueue()
 
         previous: dict[Node[T], Node[T]] = {}
-        add_task(source, score_through_node[source])
+        queue.add(source, score_through_node[source])
 
-        while open_set:
-            current, score_through = pop_task()
+        while queue:
+            current, score_through = queue.pop()
 
             if current == target:
                 return recover_path(previous, target), score_through
 
-            for neighbor in self._neighbors[current]:
+            out_neighbors = set.union(*(
+                set(edge) for edge in self.out_edges(current)
+            )) - {current}
+            for neighbor in out_neighbors:
                 updated_best_known = (
                     score_best_known[current] + get_weight((current, neighbor))
                 )
@@ -261,7 +244,7 @@ class UndirectedGraph[T: Hashable]:
                         updated_best_known
                         + heuristic(neighbor, target)
                     )
-                    add_task(neighbor, score_through_node[neighbor])
+                    queue.add(neighbor, score_through_node[neighbor])
 
         raise ValueError(f'Unable to find a path from {source} to {target}')
 

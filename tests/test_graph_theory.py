@@ -143,9 +143,12 @@ class TestCommonProperties:
                 assert G.in_edges(node) == directed_in_edges[node]
                 assert G.out_edges(node) == directed_out_edges[node]
             else:
-                assert G.in_edges(node) == G.out_edges(node)
+                assert G.in_edges(node) == {
+                    edge[::-1] for edge in G.out_edges(node)
+                }
                 assert G.in_edges(node) == (
-                    directed_in_edges[node] | directed_out_edges[node]
+                    directed_in_edges[node]
+                    | {edge[::-1] for edge in directed_out_edges[node]}
                 )
 
     def test_can_add_nodes_to_graph(self, graph_class):
@@ -359,7 +362,7 @@ class TestGraphConstructors:
                 for entry1, entry2 in zip(node1, node2)
             )
 
-        path, distance = memory_space.shortest_path_astar(
+        path, distance = memory_space.shortest_path(
             source=(0, 0), target=(6, 6), heuristic=taxicab, edge_weight=1
         )
         assert distance == 22

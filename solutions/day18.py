@@ -12,7 +12,7 @@ def solve_part_one():
         grid_node = tuple(map(int, pushed_byte.split(',')))[::-1]
         memory_space.remove_node(grid_node)
 
-    paths, distance = memory_space.shortest_path_astar(
+    paths, distance = memory_space.shortest_path(
         source=(0, 0), target=(70, 70), heuristic=taxicab, edge_weight=1
     )
     return distance
@@ -30,7 +30,7 @@ def solve_part_two():
         grid_node = tuple(map(int, pushed_byte.split(',')))[::-1]
         memory_space.remove_node(grid_node)
         try:
-            memory_space.shortest_path_astar(
+            memory_space.shortest_path(
                 source=(0, 0), target=(70, 70), heuristic=taxicab,
                 edge_weight=1
             )
