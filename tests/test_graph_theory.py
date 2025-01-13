@@ -256,6 +256,34 @@ class TestCommonProperties:
         for target in G.nodes:
             assert G.all_shortest_paths(0, target) == expected_distance[target]
 
+    def test_can_compute_a_shortest_path_from_a_source_to_a_target(self, graph_class):
+        G = graph_class(
+            (0, 1, 5), (1, 2, 3), (2, 3, 7), (3, 4, 5),
+            (0, 2, 7), (0, 4, 10),
+            (10, 11, 1)
+        )
+
+        expected_distance = {
+            0: ([0], 0),
+            1: ([0, 1], 5),
+            2: ([0, 2], 7),
+            3: ([0, 2, 3], 14),
+            4: ([0, 4], 10)
+        }
+        for target, (expected_path, expected_distance) in expected_distance.items():
+            actual_path, actual_distance = G.shortest_path(0, target, lambda p1, p2: 0)
+            assert actual_path == expected_path
+            assert actual_distance == expected_distance
+
+    def test_shortest_path_raises_error_if_source_is_not_an_ancestor_of_target(self, graph_class):
+        G = graph_class(
+            (0, 1, 5), (1, 2, 3), (2, 3, 7), (3, 4, 5),
+            (0, 2, 7), (0, 4, 10),
+            (10, 11, 1)
+        )
+        with pytest.raises(ValueError, match='Unable to find a path'):
+            G.shortest_path(0, 10, lambda p1, p2: 0)
+
 
 class TestGraph:
     def test_can_retrieve_neighbors_of_a_given_node(self):
