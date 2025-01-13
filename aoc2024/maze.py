@@ -7,7 +7,7 @@ from enum import Enum
 from functools import partial
 from typing import Union
 
-from aoc2024.graph_theory import UndirectedGraph
+from aoc2024.graph_theory import DiGraph
 from aoc2024.pathfinding import Direction
 from aoc2024.vector import Vector, taxicab
 
@@ -25,13 +25,15 @@ class Component(str, Enum):
 class Maze[PositionType: Position | OrientedPosition]:
     def __init__(
             self,
-            graph: UndirectedGraph[PositionType],
+            graph: DiGraph[PositionType],
             start: PositionType,
-            ends: Sequence[PositionType]
+            ends: Sequence[PositionType],
+            oriented: bool = True
     ):
         self._graph = graph
         self._start = start
         self._ends = set(ends)
+        self._oriented_nodes = oriented
 
     @property
     def start(self) -> PositionType:
@@ -41,11 +43,29 @@ class Maze[PositionType: Position | OrientedPosition]:
     def ends(self) -> set[PositionType]:
         return self._ends
 
-    def find_cheapest_paths(self):
+    def find_all_cheapest_paths(self):
         return {
             end: self._graph.all_shortest_paths(self._start, end)
             for end in self._ends
         }
+
+    def find_cheapest_path(self):
+        if isinstance(self.start[0], tuple):
+            def heuristic(node1, node2):
+                return taxicab(node1[0], node2[0])
+        else:
+            heuristic = taxicab
+        return min(
+            (
+                self._graph.shortest_path(
+                    source=self._start,
+                    target=end,
+                    heuristic=heuristic
+                )
+                for end in self.ends
+            ),
+            key=lambda path_and_cost: path_and_cost[1]
+        )
 
     def find_cheapest_paths_astar(self):
         if isinstance(self.start[0], tuple):
@@ -54,14 +74,14 @@ class Maze[PositionType: Position | OrientedPosition]:
         else:
             heuristic = taxicab
         return {
-            end: self._graph.shortest_path_astar(
+            end: self._graph.shortest_path(
                 self._start, end,
                 heuristic=heuristic
             )
             for end in self._ends
         }
 
-    def to_graph(self) -> UndirectedGraph[PositionType]:
+    def to_graph(self) -> DiGraph[PositionType]:
         return deepcopy(self._graph)
 
     @classmethod
@@ -98,7 +118,7 @@ class Maze[PositionType: Position | OrientedPosition]:
                         'Multiple starting locations are not supported.'
                     )
                 start = create_node(position, start_direction)  # type: ignore
-            for direction in (Direction.DOWN, Direction.RIGHT):
+            for direction in Direction: #(Direction.DOWN, Direction.RIGHT):
                 if entry is Component.END:
                     ends.append(create_node(position, direction))  # type: ignore
                 if oriented_nodes:
@@ -106,7 +126,14 @@ class Maze[PositionType: Position | OrientedPosition]:
                         create_edge(  # type: ignore
                             position, direction,
                             position, direction.rotate_clockwise(),
-                            cost_rotate
+                            cost_rotate, oriented=oriented_nodes
+                        )
+                    )
+                    edges.append(
+                        create_edge(  # type: ignore
+                            position, direction,
+                            position, direction.rotate_counterclockwise(),
+                            cost_rotate, oriented=oriented_nodes
                         )
                     )
                 neighbor = tuple(Vector(*position) + direction.grid_vector)
@@ -115,15 +142,16 @@ class Maze[PositionType: Position | OrientedPosition]:
                         create_edge(  # type: ignore
                             position, direction,
                             neighbor, direction,
-                            cost_move_forward
+                            cost_move_forward, oriented=oriented_nodes
                         )
                     )
 
-        maze_graph = UndirectedGraph(*edges)
+        maze_graph = DiGraph(*edges)
         return cls(
             graph=maze_graph,
             start=start,  # type: ignore
-            ends=ends
+            ends=ends,
+            oriented=oriented_nodes
         )
 
     @staticmethod
