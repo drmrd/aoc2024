@@ -1,5 +1,4 @@
 import sys
-import timeit
 from collections import deque
 
 import pygame
@@ -74,8 +73,12 @@ def _count_trails(
             [
                 {
                     'height': topographical_map[row][column],
-                    'color': VISUALIZER_COLORS['unvisited']['default']['color'],
-                    'bg_color': VIRIDIS_RGB_PALETTE[topographical_map[row][column]]
+                    'color': (
+                        VISUALIZER_COLORS['unvisited']['default']['color']
+                    ),
+                    'bg_color': (
+                        VIRIDIS_RGB_PALETTE[topographical_map[row][column]]
+                    )
                 }
                 for column in range(map_shape[1])
             ]
@@ -268,23 +271,3 @@ if __name__ == '__main__':
     # window.
     print('Solution to Part 1:', solve_part_one())
     print('Solution to Part 2:', solve_part_two())
-
-    executions, repetitions = 100, 10
-    print(
-        '\n=*=*=*= Best Times =*=*=*=',
-        f'({repetitions} repetitions of {executions} executions)'
-    )
-    print(
-        'Part 1:',
-        min(
-            timeit.timeit(solve_part_one, number=executions) / executions
-            for _ in range(repetitions)
-        )
-    )
-    print(
-        'Part 2:',
-        min(
-            timeit.timeit(solve_part_two, number=executions) / executions
-            for _ in range(repetitions)
-        )
-    )
