@@ -192,62 +192,7 @@ class UndirectedGraph[T: Hashable]:
             heuristic: Callable[[Node[T], Node[T]], float],
             edge_weight = 'weight'
     ) -> tuple[Sequence[Node[T]], float]:
-        if isinstance(edge_weight, str):
-            def get_weight(edge):
-                return self.edges[edge][edge_weight]
-        else:
-            def get_weight(_):
-                return edge_weight
-
-        def recover_path(previous, end):
-            current = end
-            path = deque([current])
-            while current in previous:
-                current = previous[current]
-                path.appendleft(current)
-            return list(path)
-
-        score_best_known: defaultdict[Node[T], float] = defaultdict(
-            lambda: math.inf
-        )
-        # g_score
-        score_best_known[source] = 0
-
-        score_through_node: defaultdict[Node[T], float] = defaultdict(
-            lambda: math.inf
-        )
-        # f_score
-        score_through_node[source] = heuristic(source, target)
-
-        queue = PriorityQueue()
-
-        previous: dict[Node[T], Node[T]] = {}
-        queue.add(source, score_through_node[source])
-
-        while queue:
-            current, score_through = queue.pop()
-
-            if current == target:
-                return recover_path(previous, target), score_through
-
-            out_neighbors = {
-                neighbor for _, neighbor in self.out_edges(current)
-                if neighbor != current
-            }
-            for neighbor in out_neighbors:
-                updated_best_known = (
-                    score_best_known[current] + get_weight((current, neighbor))
-                )
-                if updated_best_known < score_best_known[neighbor]:
-                    previous[neighbor] = current
-                    score_best_known[neighbor] = updated_best_known
-                    score_through_node[neighbor] = (
-                        updated_best_known
-                        + heuristic(neighbor, target)
-                    )
-                    queue.add(neighbor, score_through_node[neighbor])
-
-        raise ValueError(f'Unable to find a path from {source} to {target}')
+        return shortest_path(self, source, target, heuristic, edge_weight)
 
 
 class DiGraph[T: Hashable]:
@@ -402,62 +347,7 @@ class DiGraph[T: Hashable]:
             heuristic: Callable[[Node[T], Node[T]], float],
             edge_weight = 'weight'
     ) -> tuple[Sequence[Node[T]], float]:
-        if isinstance(edge_weight, str):
-            def get_weight(edge):
-                return self.edges[edge][edge_weight]
-        else:
-            def get_weight(_):
-                return edge_weight
-
-        def recover_path(previous, end):
-            current = end
-            path = deque([current])
-            while current in previous:
-                current = previous[current]
-                path.appendleft(current)
-            return list(path)
-
-        score_best_known: defaultdict[Node[T], float] = defaultdict(
-            lambda: math.inf
-        )
-        # g_score
-        score_best_known[source] = 0
-
-        score_through_node: defaultdict[Node[T], float] = defaultdict(
-            lambda: math.inf
-        )
-        # f_score
-        score_through_node[source] = heuristic(source, target)
-
-        queue = PriorityQueue()
-
-        previous: dict[Node[T], Node[T]] = {}
-        queue.add(source, score_through_node[source])
-
-        while queue:
-            current, score_through = queue.pop()
-
-            if current == target:
-                return recover_path(previous, target), score_through
-
-            out_neighbors = {
-                neighbor for _, neighbor in self.out_edges(current)
-                if neighbor != current
-            }
-            for neighbor in out_neighbors:
-                updated_best_known = (
-                    score_best_known[current] + get_weight((current, neighbor))
-                )
-                if updated_best_known < score_best_known[neighbor]:
-                    previous[neighbor] = current
-                    score_best_known[neighbor] = updated_best_known
-                    score_through_node[neighbor] = (
-                        updated_best_known
-                        + heuristic(neighbor, target)
-                    )
-                    queue.add(neighbor, score_through_node[neighbor])
-
-        raise ValueError(f'Unable to find a path from {source} to {target}')
+        return shortest_path(self, source, target, heuristic, edge_weight)
 
     def sort_topologically(self) -> list[T]:
         sorted_nodes: deque[T] = deque()
@@ -587,7 +477,6 @@ def _ibk_gpx[T: Hashable](
         exclusions.add(node)
 
 
-@cache
 def all_shortest_paths[T: Hashable](
         graph: UndirectedGraph[T] | DiGraph[T],
         source: Node[T],
@@ -659,6 +548,71 @@ def all_shortest_paths[T: Hashable](
             target: prepare_paths(target, previous, with_distance)
             for target in graph.nodes
         }
+
+
+def shortest_path[T: Hashable](
+        graph: UndirectedGraph[T] | DiGraph[T],
+        source: Node[T],
+        target: Node[T],
+        heuristic: Callable[[Node[T], Node[T]], float],
+        edge_weight='weight'
+) -> tuple[Sequence[Node[T]], float]:
+    if isinstance(edge_weight, str):
+        def get_weight(edge):
+            return graph.edges[edge][edge_weight]
+    else:
+        def get_weight(_):
+            return edge_weight
+
+    def recover_path(previous, end):
+        current = end
+        path = deque([current])
+        while current in previous:
+            current = previous[current]
+            path.appendleft(current)
+        return list(path)
+
+    score_best_known: defaultdict[Node[T], float] = defaultdict(
+        lambda: math.inf
+    )
+    # g_score
+    score_best_known[source] = 0
+
+    score_through_node: defaultdict[Node[T], float] = defaultdict(
+        lambda: math.inf
+    )
+    # f_score
+    score_through_node[source] = heuristic(source, target)
+
+    queue = PriorityQueue()
+
+    previous: dict[Node[T], Node[T]] = {}
+    queue.add(source, score_through_node[source])
+
+    while queue:
+        current, score_through = queue.pop()
+
+        if current == target:
+            return recover_path(previous, target), score_through
+
+        out_neighbors = {
+            neighbor for _, neighbor in graph.out_edges(current)
+            if neighbor != current
+        }
+        for neighbor in out_neighbors:
+            updated_best_known = (
+                    score_best_known[current] + get_weight((current, neighbor))
+            )
+            if updated_best_known < score_best_known[neighbor]:
+                previous[neighbor] = current
+                score_best_known[neighbor] = updated_best_known
+                score_through_node[neighbor] = (
+                        updated_best_known
+                        + heuristic(neighbor, target)
+                )
+                queue.add(neighbor, score_through_node[neighbor])
+
+    raise ValueError(f'Unable to find a path from {source} to {target}')
 
 
 def _recover_all_paths[T: Hashable](
