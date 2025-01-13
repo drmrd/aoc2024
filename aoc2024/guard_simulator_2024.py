@@ -2,37 +2,11 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import Iterator
-from enum import Enum
-from functools import cache
 from typing import Self
 
+from aoc2024.pathfinding import Direction
+
 type Position = tuple[int, int]
-
-
-class Direction(Enum):
-    DOWN = (1, 0)
-    UP = (-1, 0)
-    RIGHT = (0, 1)
-    LEFT = (0, -1)
-
-    @cache
-    def turn_right(self) -> Direction:
-        return {
-            Direction.DOWN: Direction.LEFT,
-            Direction.LEFT: Direction.UP,
-            Direction.UP: Direction.RIGHT,
-            Direction.RIGHT: Direction.DOWN
-        }[self]
-
-    @classmethod
-    @cache
-    def from_state(cls, state: str) -> Direction:
-        try:
-            return {
-                '^': cls.UP, 'v': cls.DOWN, '<': cls.LEFT, '>': cls.RIGHT
-            }[state]
-        except KeyError:
-            raise ValueError(f'Unknown direction state "{state}".')
 
 
 class GuardedLab:
@@ -58,7 +32,7 @@ class GuardedLab:
             if (guard_state := initial_states[row][column]) in guard_states:
                 self._is_guarded = True
                 self._guard_position = row, column
-                self._guard_orientation = Direction.from_state(guard_state)
+                self._guard_orientation = Direction.from_caret(guard_state)
                 self._visited_with_orientation = {
                     (self._guard_position, self._guard_orientation): True
                 }
@@ -140,7 +114,7 @@ class GuardedLab:
         if not self._is_guarded:
             raise ValueError('This lab is unguarded!')
         y, x = self._guard_position
-        dy, dx = self._guard_orientation.value
+        dy, dx = self._guard_orientation.grid_offsets
         y_next, x_next = y + dy, x + dx
 
         self._guard_is_gone |= (
@@ -152,7 +126,7 @@ class GuardedLab:
             return
 
         if (y_next, x_next) in self._blocked:
-            self._guard_orientation = self._guard_orientation.turn_right()
+            self._guard_orientation = self._guard_orientation.rotate_clockwise()
             self._visited_with_orientation[
                 (self._guard_position, self._guard_orientation)
             ] = True
