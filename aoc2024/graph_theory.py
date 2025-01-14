@@ -15,32 +15,26 @@ type Node[T: Hashable] = T
 type Edge[T: Hashable] = tuple[T, T]
 
 
-class CycleError(ValueError):
-    pass
-
-
 class UndirectedGraph[T: Hashable]:
     def __init__(
             self,
             *edges: Edge[T] | tuple[*Edge[T], Any],
             default_edge_weight: Any = None
     ):
-        self._edges = _build_edge_list(edges)
-        self._edge_attributes = _build_edge_attributes_map(
+        self._nodes, self._edges = _build_attributes_maps(
             edges, default_edge_weight, self.is_directed
         )
-        self._nodes = _build_node_list(self._edges)
-
         self._neighbors: dict[Node[T], set[Node[T]]] = {
-            source: set() for source in self._nodes
+            node: set(self._edges.get(node, set())) for node in self._nodes
         }
-        for source, target in self._edges:
-            self._neighbors[source].add(target)
-            self._neighbors[target].add(source)
+        for target in self._nodes:
+            for source in self._edges:
+                if target in self._edges[source]:
+                    self._neighbors[target].add(source)
         self._in_nodes = self._out_nodes = self._neighbors
 
-    def __getitem__(self, item: Edge[T]):
-        return self._edge_attributes[item]
+    def __getitem__(self, edge: Edge[T]):
+        return self._edges[edge[0]][edge[1]]
 
     @property
     def is_directed(self) -> bool:
@@ -48,7 +42,7 @@ class UndirectedGraph[T: Hashable]:
 
     @cached_property
     def edges(self) -> EdgeView[Edge[T]]:
-        return EdgeView(self._edges, self._edge_attributes, self.is_directed)
+        return EdgeView(self._edges, self.is_directed)
 
     @cached_property
     def nodes(self) -> Sequence[Node[T]]:
@@ -57,7 +51,7 @@ class UndirectedGraph[T: Hashable]:
     def add_node(self, node: Node[T]):
         if node in self._nodes:
             return
-        self._nodes.append(node)
+        self._nodes[node] = {}
         self._neighbors[node] = set()
 
         try:
@@ -66,36 +60,41 @@ class UndirectedGraph[T: Hashable]:
             pass
 
     def add_edge(self, edge: Edge[T]):
-        self._edges.append(edge)
+        source, target = edge
+        self._edges.setdefault(source, {}).setdefault(target, {})
         for node in edge:
             self.add_node(node)
 
-        self._neighbors[edge[0]].add(edge[1])
-        self._neighbors[edge[1]].add(edge[0])
+        self._neighbors[source].add(target)
+        self._neighbors[target].add(source)
 
         self._clear_caches()
 
     def remove_node(self, node: Node[T]):
         if node not in self._nodes:
             return
-        self._nodes.remove(node)
-        edges_to_remove = [edge for edge in self._edges if node in edge]
-        for edge in edges_to_remove:
-            self._edges.remove(edge)
-
+        del self._nodes[node]
         for neighbor in self._neighbors[node]:
             self._neighbors[neighbor].remove(node)
+            try:
+                del self._edges[neighbor][node]
+            except KeyError:
+                continue
         del self._neighbors[node]
+        try:
+            del self._edges[node]
+        except KeyError:
+            pass
         self._clear_caches()
 
     def remove_edge(self, edge: Edge[T]):
         to_remove = {edge}
         if not self.is_directed:
             to_remove.add(edge[::-1])
-        for edge_to_remove in to_remove:
+        for source, target in to_remove:
             try:
-                self._edges.remove(edge_to_remove)
-            except ValueError:
+                del self._edges[source][target]
+            except KeyError:
                 continue
 
         self._neighbors[edge[0]].remove(edge[1])
@@ -195,19 +194,19 @@ class DiGraph[T: Hashable]:
             *edges: Edge[T] | tuple[*Edge[T], Any],
             default_edge_weight: Any = None
     ):
-        self._edges = _build_edge_list(edges)
-        self._edge_attributes = _build_edge_attributes_map(
+        self._nodes, self._edges = _build_attributes_maps(
             edges, default_edge_weight, self.is_directed
         )
-        self._nodes = _build_node_list(self._edges)
         self._in_nodes = {node: set() for node in self.nodes}
-        self._out_nodes = {node: set() for node in self.nodes}
-        for source, target in self.edges:
-            self._in_nodes[target].add(source)
-            self._out_nodes[source].add(target)
+        self._out_nodes: dict[Node[T], set[Node[T]]] = {
+            node: set(self._edges.get(node, set())) for node in self.nodes
+        }
+        for source in self._edges:
+            for target in self._edges[source]:
+                self._in_nodes[target].add(source)
 
-    def __getitem__(self, item: Edge[T]):
-        return self._edge_attributes[item]
+    def __getitem__(self, edge: Edge[T]):
+        return self._edges[edge[0]][edge[1]]
 
     @property
     def is_directed(self) -> bool:
@@ -215,7 +214,7 @@ class DiGraph[T: Hashable]:
 
     @cached_property
     def edges(self) -> EdgeView[Edge[T]]:
-        return EdgeView(self._edges, self._edge_attributes, self.is_directed)
+        return EdgeView(self._edges, self.is_directed)
 
     @cache
     def in_edges(self, node: Node[T]) -> set[Edge[T]]:
@@ -232,7 +231,9 @@ class DiGraph[T: Hashable]:
     def add_node(self, node: Node[T]):
         if node in self._nodes:
             return
-        self._nodes.append(node)
+        self._nodes[node] = {}
+        self._in_nodes[node] = set()
+        self._out_nodes[node] = set()
 
         try:
             del self.__dict__['nodes']
@@ -240,57 +241,55 @@ class DiGraph[T: Hashable]:
             pass
 
     def add_edge(self, edge: Edge[T]):
-        self._edges.append(edge)
-
-        for node in edge:
-            if node not in self._in_nodes:
-                self._in_nodes[node] = set()
-            if node not in self._out_nodes:
-                self._out_nodes[node] = set()
-
         source, target = edge
-        self._out_nodes[source].add(target)
-        self._in_nodes[target].add(source)
-        if not self.is_directed:
-            self._out_nodes[target].add(source)
-            self._in_nodes[source].add(target)
-
+        self._edges.setdefault(source, {}).setdefault(target, {})
         for node in edge:
             self.add_node(node)
+
+        if source not in self._out_nodes:
+            self._out_nodes[source] = set()
+        if target not in self._in_nodes:
+            self._in_nodes[target] = set()
+        self._out_nodes[source].add(target)
+        self._in_nodes[target].add(source)
 
         self._clear_caches()
 
     def remove_node(self, node: Node[T]):
         if node not in self._nodes:
             return
-        self._nodes.remove(node)
-        edges_to_remove = [edge for edge in self._edges if node in edge]
-        for source, target in edges_to_remove:
-            self._edges.remove((source, target))
-            self._out_nodes[source].remove(target)
-            self._in_nodes[target].remove(source)
-            if not self.is_directed:
-                self._out_nodes[target].remove(source)
-                self._in_nodes[source].remove(target)
+        del self._nodes[node]
+
+        for out_node in self._out_nodes[node]:
+            self._in_nodes[out_node].remove(node)
+            try:
+                del self._edges[out_node][node]
+            except KeyError:
+                continue
+        del self._out_nodes[node]
+
+        for in_node in self._in_nodes[node]:
+            self._out_nodes[in_node].remove(node)
+            try:
+                del self._edges[in_node][node]
+            except KeyError:
+                continue
+        del self._in_nodes[node]
+
+        try:
+            del self._edges[node]
+        except KeyError:
+            pass
         self._clear_caches()
 
     def remove_edge(self, edge: Edge[T]):
-        to_remove = {edge}
-        if not self.is_directed:
-            to_remove.add(edge[::-1])
-        for source, target in to_remove:
-            try:
-                self._edges.remove((source, target))
-            except ValueError:
-                continue
-            try:
-                self._in_nodes[target].remove(source)
-            except ValueError:
-                continue
-            try:
-                self._out_nodes[source].remove(target)
-            except ValueError:
-                continue
+        source, target = edge
+        if source not in self._edges or target not in self._edges[source]:
+            return
+
+        del self._edges[source][target]
+        self._out_nodes[source].remove(target)
+        self._in_nodes[target].remove(source)
         self._clear_caches()
 
     @cache
@@ -390,34 +389,61 @@ class DiGraph[T: Hashable]:
                 pass
 
 
-class EdgeView[Edge: Hashable](Mapping, Set):
+class EdgeView[T: Hashable](Mapping, Set):
     def __init__(
             self,
-            edges: Sequence[Edge],
-            edge_weights: Mapping[Edge, Mapping[str, Any]],
+            edges: dict[Node[T], dict[Node[T], dict[str, Any]]],
             directed: bool
     ):
         self._edges = edges
-        self._edge_weights = edge_weights
         self._directed = directed
 
     def __getitem__(self, key, /):
-        return self._edge_weights[tuple(key)]
+        try:
+            source, target = key
+            return self._edges[source][target]
+        except KeyError as key_error:
+            if not self._directed:
+                try:
+                    return self._edges[target][source]
+                except KeyError:
+                    pass
+            raise key_error
+        except ValueError:
+            return self._edges[key]
 
     def __contains__(self, item):
+        try:
+            source, target = item
+        except ValueError:
+            return False
         return (
-            tuple(item) in self._edges
+            source in self._edges and target in self._edges[source]
             or (
                 not self._directed
-                and tuple(item)[::-1] in self._edges
+                and target in self._edges and source in self._edges[target]
             )
         )
 
     def __iter__(self):
-        return iter(self._edges)
+        seen = set()
+        if not self._directed:
+            def update_seen(source, target):
+                nonlocal seen
+                seen |= {(source, target), (target, source)}
+        else:
+            def update_seen(*_):
+                pass
 
+        for source in self._edges:
+            for target in self._edges[source]:
+                if (source, target) not in seen:
+                    yield source, target
+                update_seen(source, target)
+
+    @lru_cache(1)
     def __len__(self):
-        return len(self._edges)
+        return len(list(self))
 
 
 def _build_edge_list[T: Hashable](
@@ -428,38 +454,52 @@ def _build_edge_list[T: Hashable](
     ]
 
 
-def _build_edge_attributes_map[T: Hashable](
+def _build_attributes_maps[T: Hashable](
         weighted_edges: tuple[Edge[T] | tuple[*Edge[T], Any], ...],
         default_edge_weight: Any,
         directed: bool
-) -> Mapping[Edge[T], dict[str, Any]]:
+) -> tuple[
+        dict[Node[T], dict[str, Any]],
+        dict[Node[T], dict[Node[T], dict[str, Any]]]
+]:
+    node_attributes = {}
     edge_attributes = {}
     for source, target, *rest in weighted_edges:
+        node_attributes.setdefault(source, {})
+        node_attributes.setdefault(target, {})
         if len(rest) > 1:
             raise ValueError(
                 'Providing multiple weights or attribute dictionaries per '
                 'edge in tuples passed to the constructor is not supported.'
             )
+        if source in edge_attributes and target in edge_attributes[source]:
+            raise ValueError(
+                'Attempting to construct a graph with multiple copies of edge '
+                f'{(source, target)}.'
+            )
+        else:
+            edge_attributes.setdefault(source, {})
         try:
-            edge_attributes[source, target] = {
+            edge_attributes[source][target] = {
                 key: value for key, value in rest[0].items()
             }
         except (IndexError, AttributeError):
-            edge_attributes[source, target] = {
+            edge_attributes[source][target] = {
                 'weight': rest[0] if rest else default_edge_weight
             }
-        if not directed:
-            edge_attributes[target, source] = edge_attributes[source, target]
-    return edge_attributes
+    return node_attributes, edge_attributes
 
 
-def _build_node_list[T: Hashable](
+def _build_node_attributes_map[T: Hashable](
         edges: Sequence[Edge[T]]
-) -> list[Node[T]]:
-    return list({
-        *(source_node for source_node, _ in edges),
-        *(target_node for _, target_node in edges)
-    })
+) -> dict[Node[T], Any]:
+    return {
+        node: {}
+        for node in {
+            *(source_node for source_node, _ in edges),
+            *(target_node for _, target_node in edges)
+        }
+    }
 
 
 def _ibk_gpx[T: Hashable](
@@ -587,7 +627,6 @@ def all_shortest_paths_to_targets[T: Hashable](
         lambda: math.inf
     )
     distance_from_source[source] = 0
-    previous: dict[Node[T], set[Node[T]] | None] = {source: None}
     heap = [(0, source, {source})]
 
     best_paths = {target: deque() for target in targets}
@@ -612,9 +651,6 @@ def all_shortest_paths_to_targets[T: Hashable](
                 continue
             elif updated_distance < current_distance:
                 distance_from_source[neighbor] = updated_distance
-                previous[neighbor] = {node}  # type: ignore
-            else:
-                previous[neighbor].add(node)  # type: ignore
             heapq.heappush(
                 heap, (updated_distance, neighbor, path | {neighbor})
             )

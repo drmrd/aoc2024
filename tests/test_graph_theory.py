@@ -95,7 +95,6 @@ class TestCommonProperties:
 
         for edge, expected_data in expected_edge_data.items():
             for key, value in expected_data.items():
-                print(G[edge])
                 assert G[edge][key] == value
 
     def test_graph_edge_directedness(self, graph_class):
@@ -118,8 +117,11 @@ class TestCommonProperties:
     def test_nodes_have_in_and_out_edges(self, graph_class):
         G = graph_class(
             (0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5), (5, 6),
-            (0, 0), (2, 1), (2, 5), (3, 2), (3, 5)
+            (0, 0), (2, 5), (3, 5)
         )
+        if G.is_directed:
+            G.add_edge((2, 1))
+            G.add_edge((3, 2))
         directed_in_edges = {
             0: {(0, 0), (3, 0)},
             1: {(0, 1), (2, 1)},
