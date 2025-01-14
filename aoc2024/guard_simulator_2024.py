@@ -14,12 +14,11 @@ class GuardedLab:
             self,
             initial_states
     ):
-        rows, columns = len(initial_states), len(initial_states[0])
-        self._shape = (rows, columns)
+        self._shape = len(initial_states), len(initial_states[0])
 
         self._blocked = {
             (row, column)
-            for row, column in itertools.product(range(rows), range(columns))
+            for row, column in itertools.product(*map(range, self._shape))
             if initial_states[row][column] == '#'
         }
 
@@ -28,7 +27,7 @@ class GuardedLab:
             raise ValueError('Multiple guards are not supported.')
 
         self._is_guarded = False
-        for row, column in itertools.product(range(rows), range(columns)):
+        for row, column in itertools.product(*map(range, self._shape)):
             if (guard_state := initial_states[row][column]) in guard_states:
                 self._is_guarded = True
                 self._guard_position = row, column
