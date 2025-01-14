@@ -118,7 +118,7 @@ class Maze[PositionType: Position | OrientedPosition]:
                         'Multiple starting locations are not supported.'
                     )
                 start = create_node(position, start_direction)  # type: ignore
-            for direction in Direction: #(Direction.DOWN, Direction.RIGHT):
+            for direction in Direction:
                 if entry is Component.END:
                     ends.append(create_node(position, direction))  # type: ignore
                 if oriented_nodes:

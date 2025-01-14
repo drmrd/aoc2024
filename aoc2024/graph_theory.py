@@ -6,7 +6,7 @@ import math
 from collections import deque, defaultdict
 from collections.abc import Hashable, Set, Sequence, Mapping, Callable
 from copy import deepcopy
-from functools import cached_property, cache
+from functools import cached_property, cache, lru_cache
 from typing import Any, Union, Generator
 
 from aoc2024.collections import PriorityQueue
@@ -30,12 +30,14 @@ class UndirectedGraph[T: Hashable]:
             edges, default_edge_weight, self.is_directed
         )
         self._nodes = _build_node_list(self._edges)
+
         self._neighbors: dict[Node[T], set[Node[T]]] = {
             source: set() for source in self._nodes
         }
         for source, target in self._edges:
             self._neighbors[source].add(target)
             self._neighbors[target].add(source)
+        self._in_nodes = self._out_nodes = self._neighbors
 
     def __getitem__(self, item: Edge[T]):
         return self._edge_attributes[item]
@@ -47,18 +49,6 @@ class UndirectedGraph[T: Hashable]:
     @cached_property
     def edges(self) -> EdgeView[Edge[T]]:
         return EdgeView(self._edges, self._edge_attributes, self.is_directed)
-
-    @cache
-    def in_edges(self, node: Node[T]) -> set[Edge[T]]:
-        incident_edges = {edge for edge in self.edges if node in edge}
-        return {
-            (edge[(edge.index(node) + 1) % 2], node)
-            for edge in incident_edges
-        }
-
-    @cache
-    def out_edges(self, node: Node[T]) -> set[Edge[T]]:
-        return {edge[::-1] for edge in self.in_edges(node)}
 
     @cached_property
     def nodes(self) -> Sequence[Node[T]]:
@@ -83,17 +73,7 @@ class UndirectedGraph[T: Hashable]:
         self._neighbors[edge[0]].add(edge[1])
         self._neighbors[edge[1]].add(edge[0])
 
-        self.in_edges.cache_clear()
-        self.out_edges.cache_clear()
-        self.neighbors.cache_clear()
-        self.cliques.cache_clear()
-        self.all_shortest_paths.cache_clear()
-        self.shortest_path.cache_clear()
-
-        try:
-            del self.__dict__['edges']
-        except KeyError:
-            pass
+        self._clear_caches()
 
     def remove_node(self, node: Node[T]):
         if node not in self._nodes:
@@ -106,18 +86,7 @@ class UndirectedGraph[T: Hashable]:
         for neighbor in self._neighbors[node]:
             self._neighbors[neighbor].remove(node)
         del self._neighbors[node]
-        self.in_edges.cache_clear()
-        self.out_edges.cache_clear()
-        self.neighbors.cache_clear()
-        self.cliques.cache_clear()
-        self.all_shortest_paths.cache_clear()
-        self.shortest_path.cache_clear()
-
-        for cached_property_name in ('nodes', 'edges'):
-            try:
-                del self.__dict__[cached_property_name]
-            except KeyError:
-                pass
+        self._clear_caches()
 
     def remove_edge(self, edge: Edge[T]):
         to_remove = {edge}
@@ -131,18 +100,7 @@ class UndirectedGraph[T: Hashable]:
 
         self._neighbors[edge[0]].remove(edge[1])
         self._neighbors[edge[1]].remove(edge[0])
-
-        self.in_edges.cache_clear()
-        self.out_edges.cache_clear()
-        self.neighbors.cache_clear()
-        self.cliques.cache_clear()
-        self.all_shortest_paths.cache_clear()
-        self.shortest_path.cache_clear()
-
-        try:
-            del self.__dict__['edges']
-        except KeyError:
-            pass
+        self._clear_caches()
 
     def to_directed(self) -> DiGraph[T]:
         return DiGraph(
@@ -158,6 +116,20 @@ class UndirectedGraph[T: Hashable]:
     @cache
     def neighbors(self, node: Node[T]) -> Set[T]:
         return self._neighbors[node]
+
+    @cache
+    def in_edges(self, node: Node[T]) -> set[Edge[T]]:
+        return {(neighbor, node) for neighbor in self._in_nodes[node]}
+
+    @cache
+    def out_edges(self, node: Node[T]) -> set[Edge[T]]:
+        return {(node, neighbor) for neighbor in self._out_nodes[node]}
+
+    def in_nodes(self, node: Node[T]) -> set[Node[T]]:
+        return self.neighbors(node)
+
+    def out_nodes(self, node: Node[T]) -> set[Node[T]]:
+        return self.neighbors(node)
 
     @cache
     def cliques(self) -> Sequence[set[Node[T]]]:
@@ -176,13 +148,21 @@ class UndirectedGraph[T: Hashable]:
             Mapping[Node[T], Sequence[Node[T]]],
             Mapping[Node[T], tuple[Sequence[Node[T]], float]]
     ]:
-        return all_shortest_paths(
-            graph=self,
-            source=source,
-            target=target,
-            with_distance=with_distance,
-            edge_weight=edge_weight
-        )
+        if target is None:
+            return all_shortest_paths(
+                graph=self,
+                source=source,
+                with_distance=with_distance,
+                edge_weight=edge_weight
+            )
+        else:
+            return all_shortest_paths_to_targets(
+                graph=self,
+                source=source,
+                targets=[target] if target in self.nodes else target,
+                with_distance=with_distance,
+                edge_weight=edge_weight
+            )
 
     @cache
     def shortest_path(
@@ -193,6 +173,20 @@ class UndirectedGraph[T: Hashable]:
             edge_weight = 'weight'
     ) -> tuple[Sequence[Node[T]], float]:
         return shortest_path(self, source, target, heuristic, edge_weight)
+
+    def _clear_caches(self):
+        self.in_edges.cache_clear()
+        self.out_edges.cache_clear()
+        self.neighbors.cache_clear()
+        self.cliques.cache_clear()
+        self.all_shortest_paths.cache_clear()
+        self.shortest_path.cache_clear()
+
+        for cached_property_name in ('nodes', 'edges'):
+            try:
+                del self.__dict__[cached_property_name]
+            except KeyError:
+                pass
 
 
 class DiGraph[T: Hashable]:
@@ -206,6 +200,11 @@ class DiGraph[T: Hashable]:
             edges, default_edge_weight, self.is_directed
         )
         self._nodes = _build_node_list(self._edges)
+        self._in_nodes = {node: set() for node in self.nodes}
+        self._out_nodes = {node: set() for node in self.nodes}
+        for source, target in self.edges:
+            self._in_nodes[target].add(source)
+            self._out_nodes[source].add(target)
 
     def __getitem__(self, item: Edge[T]):
         return self._edge_attributes[item]
@@ -220,19 +219,11 @@ class DiGraph[T: Hashable]:
 
     @cache
     def in_edges(self, node: Node[T]) -> set[Edge[T]]:
-        return {
-            (source, target)
-            for (source, target) in self.edges
-            if target == node
-        }
+        return {(neighbor, node) for neighbor in self._in_nodes[node]}
 
     @cache
     def out_edges(self, node: Node[T]) -> set[Edge[T]]:
-        return {
-            (source, target)
-            for (source, target) in self.edges
-            if source == node
-        }
+        return {(node, neighbor) for neighbor in self._out_nodes[node]}
 
     @cached_property
     def nodes(self) -> Sequence[T]:
@@ -250,79 +241,77 @@ class DiGraph[T: Hashable]:
 
     def add_edge(self, edge: Edge[T]):
         self._edges.append(edge)
+
+        for node in edge:
+            if node not in self._in_nodes:
+                self._in_nodes[node] = set()
+            if node not in self._out_nodes:
+                self._out_nodes[node] = set()
+
+        source, target = edge
+        self._out_nodes[source].add(target)
+        self._in_nodes[target].add(source)
+        if not self.is_directed:
+            self._out_nodes[target].add(source)
+            self._in_nodes[source].add(target)
+
         for node in edge:
             self.add_node(node)
 
-        self.in_edges.cache_clear()
-        self.out_edges.cache_clear()
-        self.parents.cache_clear()
-        self.children.cache_clear()
-
-        try:
-            del self.__dict__['edges']
-        except KeyError:
-            pass
+        self._clear_caches()
 
     def remove_node(self, node: Node[T]):
         if node not in self._nodes:
             return
         self._nodes.remove(node)
         edges_to_remove = [edge for edge in self._edges if node in edge]
-        for edge in edges_to_remove:
-            self._edges.remove(edge)
-
-        self.in_edges.cache_clear()
-        self.out_edges.cache_clear()
-        self.parents.cache_clear()
-        self.children.cache_clear()
-
-        for cached_property_name in ('nodes', 'edges'):
-            try:
-                del self.__dict__[cached_property_name]
-            except KeyError:
-                pass
+        for source, target in edges_to_remove:
+            self._edges.remove((source, target))
+            self._out_nodes[source].remove(target)
+            self._in_nodes[target].remove(source)
+            if not self.is_directed:
+                self._out_nodes[target].remove(source)
+                self._in_nodes[source].remove(target)
+        self._clear_caches()
 
     def remove_edge(self, edge: Edge[T]):
         to_remove = {edge}
         if not self.is_directed:
             to_remove.add(edge[::-1])
-        for edge_to_remove in to_remove:
+        for source, target in to_remove:
             try:
-                self._edges.remove(edge_to_remove)
+                self._edges.remove((source, target))
             except ValueError:
                 continue
-
-        self.in_edges.cache_clear()
-        self.out_edges.cache_clear()
-        self.parents.cache_clear()
-        self.children.cache_clear()
-
-        try:
-            del self.__dict__['edges']
-        except KeyError:
-            pass
-
-    @cache
-    def parents(self, child: T) -> set[T]:
-        return {
-            parent
-            for parent in self.nodes
-            if (parent, child) in self._edges
-        }
+            try:
+                self._in_nodes[target].remove(source)
+            except ValueError:
+                continue
+            try:
+                self._out_nodes[source].remove(target)
+            except ValueError:
+                continue
+        self._clear_caches()
 
     @cache
-    def children(self, parent: T) -> set[T]:
-        return {
-            child
-            for child in self.nodes
-            if (parent, child) in self._edges
-        }
+    def in_nodes(self, node: Node[T]) -> set[Node[T]]:
+        return self._in_nodes[node]
+
+    @cache
+    def out_nodes(self, node: Node[T]) -> set[Node[T]]:
+        return self._out_nodes[node]
+
+    def parents(self, child: Node[T]) -> set[Node[T]]:
+        return self.in_nodes(child)
+
+    def children(self, parent: Node[T]) -> set[Node[T]]:
+        return self.out_nodes(parent)
 
     @cache
     def all_shortest_paths(
             self,
             source: Node[T],
-            target: Node[T] | None = None,
+            target: Node[T] | Sequence[Node[T]] | None = None,
             with_distance: bool = True,
             edge_weight = 'weight'
     ) -> Union[
@@ -331,13 +320,21 @@ class DiGraph[T: Hashable]:
             Mapping[Node[T], Sequence[Node[T]]],
             Mapping[Node[T], tuple[Sequence[Node[T]], float]]
     ]:
-        return all_shortest_paths(
-            graph=self,
-            source=source,
-            target=target,
-            with_distance=with_distance,
-            edge_weight=edge_weight
-        )
+        if target is None:
+            return all_shortest_paths(
+                graph=self,
+                source=source,
+                with_distance=with_distance,
+                edge_weight=edge_weight
+            )
+        else:
+            return all_shortest_paths_to_targets(
+                graph=self,
+                source=source,
+                targets=[target] if target in self.nodes else target,
+                with_distance=with_distance,
+                edge_weight=edge_weight
+            )
 
     @cache
     def shortest_path(
@@ -349,6 +346,7 @@ class DiGraph[T: Hashable]:
     ) -> tuple[Sequence[Node[T]], float]:
         return shortest_path(self, source, target, heuristic, edge_weight)
 
+    @lru_cache(1)
     def sort_topologically(self) -> list[T]:
         sorted_nodes: deque[T] = deque()
         orphans = {node for node in self.nodes if not self.parents(node)}
@@ -375,6 +373,21 @@ class DiGraph[T: Hashable]:
                     remaining_nodes.remove(unvisited_child)
 
         return list(sorted_nodes)
+
+    def _clear_caches(self):
+        self.in_nodes.cache_clear()
+        self.out_nodes.cache_clear()
+        self.in_edges.cache_clear()
+        self.out_edges.cache_clear()
+        self.all_shortest_paths.cache_clear()
+        self.shortest_path.cache_clear()
+        self.sort_topologically.cache_clear()
+
+        for cached_property_name in ('nodes', 'edges'):
+            try:
+                del self.__dict__[cached_property_name]
+            except KeyError:
+                pass
 
 
 class EdgeView[Edge: Hashable](Mapping, Set):
@@ -480,7 +493,6 @@ def _ibk_gpx[T: Hashable](
 def all_shortest_paths[T: Hashable](
         graph: UndirectedGraph[T] | DiGraph[T],
         source: Node[T],
-        target: Node[T] | None = None,
         with_distance: bool = True,
         edge_weight = 'weight'
 ) -> Union[
@@ -541,12 +553,91 @@ def all_shortest_paths[T: Hashable](
         else:
             return paths
 
-    if target is not None:
-        return prepare_paths(target, previous, with_distance)
+    return {
+        target: prepare_paths(target, previous, with_distance)
+        for target in graph.nodes
+    }
+
+
+def all_shortest_paths_to_targets[T: Hashable](
+        graph: UndirectedGraph[T] | DiGraph[T],
+        source: Node[T],
+        targets: list[Node[T]],
+        with_distance: bool = True,
+        edge_weight = 'weight'
+) -> Union[
+        Sequence[Node[T]],
+        tuple[Sequence[Node[T]], float],
+        Mapping[Node[T], Sequence[Node[T]]],
+        Mapping[Node[T], tuple[Sequence[Node[T]], float]]
+]:
+    if not targets:
+        raise ValueError('At least one target node must be provided.')
+    if not graph.is_directed:
+        graph = graph.to_directed()  # type: ignore
+
+    if isinstance(edge_weight, str):
+        def get_weight(edge):
+            return graph.edges[edge][edge_weight]
+    else:
+        def get_weight(edge):
+            return edge_weight
+
+    distance_from_source: defaultdict[Node[T], float] = defaultdict(
+        lambda: math.inf
+    )
+    distance_from_source[source] = 0
+    previous: dict[Node[T], set[Node[T]] | None] = {source: None}
+    heap = [(0, source, {source})]
+
+    best_paths = {target: deque() for target in targets}
+    shortest_distance = {target: None for target in targets}
+    while heap:
+        distance_to_node, node, path = heapq.heappop(heap)
+
+        if node in targets:
+            cheapest_path_cost = shortest_distance[node]
+            if cheapest_path_cost is None or distance_to_node == cheapest_path_cost:
+                best_paths[node].append(path)
+                shortest_distance[node] = distance_to_node
+            continue
+
+        for out_edge in graph.out_edges(node):
+            _, neighbor = out_edge
+            current_distance = distance_from_source[neighbor]
+            updated_distance = (
+                distance_to_node + get_weight((node, neighbor))
+            )
+            if updated_distance > current_distance:
+                continue
+            elif updated_distance < current_distance:
+                distance_from_source[neighbor] = updated_distance
+                previous[neighbor] = {node}  # type: ignore
+            else:
+                previous[neighbor].add(node)  # type: ignore
+            heapq.heappush(
+                heap, (updated_distance, neighbor, path | {neighbor})
+            )
+
+    def target_output(
+            target_paths: deque[Sequence[Node[T]]],
+            target_distance: float | None
+    ):
+        paths = [list(path) for path in target_paths]
+        if with_distance:
+            distance = math.inf if target_distance is None else target_distance
+            return paths, distance
+        else:
+            return paths
+    if len(targets) == 1:
+        return target_output(
+            best_paths[targets[0]], shortest_distance[targets[0]]
+        )
     else:
         return {
-            target: prepare_paths(target, previous, with_distance)
-            for target in graph.nodes
+            target: target_output(
+                best_paths[target], shortest_distance[target]
+            ) for target in targets
         }
 
 
